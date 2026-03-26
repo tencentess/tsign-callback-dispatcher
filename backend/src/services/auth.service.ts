@@ -6,6 +6,8 @@ import logger from './logger.service';
 interface UserRecord {
   username: string;
   passwordHash: string;
+  /** Incremented on every password change; embedded in JWT to invalidate old tokens */
+  passwordVersion?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,18 +91,35 @@ export async function authenticate(username: string, password: string): Promise<
     return null;
   }
 
-  const token = jwt.sign({ username: user.username }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN as string | number,
-  } as jwt.SignOptions);
+  const token = jwt.sign(
+    { username: user.username, pwdVer: user.passwordVersion || 0 },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN as string | number } as jwt.SignOptions,
+  );
 
   logger.debug(`Authentication successful for user: ${masked}`);
   return token;
 }
 
-export function verifyToken(token: string): { username: string } | null {
+export async function verifyToken(token: string): Promise<{ username: string } | null> {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { username: string };
-    return decoded;
+    const decoded = jwt.verify(token, JWT_SECRET) as { username: string; pwdVer?: number };
+
+    // Check if token's password version matches current version
+    const data = await loadUsers();
+    const user = data.users.find((u) => u.username === decoded.username);
+    if (user) {
+      const currentVer = user.passwordVersion || 0;
+      const tokenVer = decoded.pwdVer ?? 0;
+      if (tokenVer !== currentVer) {
+        logger.info(`Token rejected: password version mismatch (token=${tokenVer}, current=${currentVer})`, {
+          user: maskUser(decoded.username),
+        });
+        return null;
+      }
+    }
+
+    return { username: decoded.username };
   } catch (err: any) {
     logger.debug(`Token verification failed: ${err.message}`);
     return null;
@@ -122,6 +141,7 @@ export async function changePassword(username: string, oldPassword: string, newP
     return false;
   }
   user.passwordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
+  user.passwordVersion = (user.passwordVersion || 0) + 1;
   user.updatedAt = new Date().toISOString();
   await saveUsers(data);
   logger.info(`Password changed successfully for user: ${masked}`);

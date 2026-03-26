@@ -5,7 +5,7 @@ export interface AuthenticatedRequest extends Request {
   user?: { username: string };
 }
 
-export function authRequired(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+export async function authRequired(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).json({ code: 401, message: 'Authentication required' });
@@ -13,12 +13,16 @@ export function authRequired(req: AuthenticatedRequest, res: Response, next: Nex
   }
 
   const token = authHeader.substring(7);
-  const decoded = verifyToken(token);
-  if (!decoded) {
-    res.status(401).json({ code: 401, message: 'Invalid or expired token' });
-    return;
-  }
+  try {
+    const decoded = await verifyToken(token);
+    if (!decoded) {
+      res.status(401).json({ code: 401, message: 'Invalid or expired token' });
+      return;
+    }
 
-  req.user = decoded;
-  next();
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ code: 401, message: 'Invalid or expired token' });
+  }
 }

@@ -42,12 +42,21 @@ const MainLayout: React.FC = () => {
 
   const handlePasswordSubmit = async (ctx: any) => {
     if (ctx.validateResult !== true) return;
-    const { oldPassword, newPassword } = ctx.fields;
+    const { oldPassword, newPassword, confirmPassword } = ctx.fields;
+
+    if (newPassword !== confirmPassword) {
+      MessagePlugin.error('两次输入的密码不一致');
+      return;
+    }
+
     setPasswordLoading(true);
     try {
       await changePassword(oldPassword, newPassword);
-      MessagePlugin.success('密码修改成功');
+      MessagePlugin.success('密码修改成功，请重新登录');
       setPasswordDialogVisible(false);
+      // 强制登出：清除 token 并跳转到登录页
+      clearAuth();
+      navigate('/login', { replace: true });
     } catch (err: any) {
       const msg = err?.response?.data?.message || '密码修改失败';
       MessagePlugin.error(msg);

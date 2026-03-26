@@ -67,7 +67,7 @@ export async function updatePassword(req: AuthenticatedRequest, res: Response): 
     }
 
     logger.info(`Password updated`, { user: masked });
-    res.json({ code: 0, message: 'Password updated successfully' });
+    res.json({ code: 0, message: 'Password updated successfully, please re-login', data: { forceLogout: true } });
   } catch (err: any) {
     logger.error(`Password update error: ${err.message}`, { user: masked, stack: err.stack });
     res.status(500).json({ code: 500, message: 'Internal server error' });
