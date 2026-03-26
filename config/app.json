@@ -4,7 +4,7 @@
     "host": "0.0.0.0"
   },
   "tsign": {
-    "encryptKey": "",
+    "encryptKey": "CC23FB38AE1D47B09D939CFBAE64195F",
     "token": ""
   },
   "dispatch": {

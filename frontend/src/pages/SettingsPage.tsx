@@ -103,7 +103,7 @@ const SettingsPage: React.FC = () => {
             <div className="bg-blue-50 rounded-lg p-4">
               <p className="text-sm text-blue-600 font-medium">运行时长</p>
               <p className="text-xl font-bold text-blue-700 mt-1">
-                {Math.floor(health.uptime / 3600)}h {Math.floor((health.uptime % 3600) / 60)}m
+                {Math.floor((health.uptime || 0) / 3600)}h {Math.floor(((health.uptime || 0) % 3600) / 60)}m
               </p>
             </div>
             <div className="bg-purple-50 rounded-lg p-4">

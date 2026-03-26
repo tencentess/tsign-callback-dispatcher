@@ -17,9 +17,21 @@ interface UsersFile {
 }
 
 const USERS_KEY = 'users.json';
-const JWT_SECRET = process.env.JWT_SECRET || 'tsign-dispatcher-default-secret-change-me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 const BCRYPT_ROUNDS = 10;
+
+// SEC-002: JWT_SECRET is mandatory in production; in dev a default is allowed with a warning
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === 'production') {
+    logger.error('FATAL: JWT_SECRET environment variable is required in production');
+    process.exit(1);
+  }
+  logger.warn('JWT_SECRET not set — using insecure default. Set JWT_SECRET env var before deploying!');
+  return 'tsign-dispatcher-default-secret-DO-NOT-USE-IN-PROD';
+}
+const JWT_SECRET = getJwtSecret();
 
 /** Mask username: keep first char, mask the rest with '*' */
 function maskUser(name: string): string {

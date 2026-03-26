@@ -4,7 +4,6 @@ import { decryptCallbackMessage, verifyCallbackSignature } from '../services/dec
 import { dispatchMessage } from '../services/dispatch.service';
 import logger from '../services/logger.service';
 
-const IS_TEST = process.env.NODE_ENV === 'test';
 const MAX_RECEIVED = 50;
 let receivedCallbacks: Array<{ msgId: string; msgType: string; receivedAt: string }> = [];
 
@@ -15,7 +14,10 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
 
     logger.debug('Received callback from TSign');
 
-    // Verify signature (mandatory in production)
+    // SEC-003: Verify signature whenever token is configured (all environments)
+    const { getAppConfig } = require('../config/app.config');
+    const { token: signToken } = getAppConfig().tsign;
+
     if (msg_signature && timestamp && nonce && body.encrypt) {
       const valid = verifyCallbackSignature(timestamp, nonce, body.encrypt, msg_signature);
       if (!valid) {
@@ -23,15 +25,13 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
         res.status(403).json({ code: 403, message: 'Signature verification failed' });
         return;
       }
-    } else if (process.env.NODE_ENV === 'production') {
-      // In production, signature parameters are mandatory when token is configured
-      const { getAppConfig } = require('../config/app.config');
-      const { token } = getAppConfig().tsign;
-      if (token) {
-        logger.warn('Missing signature parameters in production with token configured');
-        res.status(403).json({ code: 403, message: 'Signature verification required' });
-        return;
-      }
+    } else if (signToken) {
+      // When token is configured, signature parameters are mandatory in ALL environments
+      logger.warn('Missing signature parameters with token configured', {
+        hasSignature: !!msg_signature, hasTimestamp: !!timestamp, hasNonce: !!nonce,
+      });
+      res.status(403).json({ code: 403, message: 'Signature verification required' });
+      return;
     }
 
     // Decrypt message
@@ -43,7 +43,7 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
     }
 
     // Record received callback only in test environment (lightweight summary, not full payload)
-    if (IS_TEST) {
+    if (process.env.NODE_ENV === 'test') {
       receivedCallbacks.push({ msgId: message.MsgId, msgType: message.MsgType, receivedAt: new Date().toISOString() });
       if (receivedCallbacks.length > MAX_RECEIVED) {
         receivedCallbacks = receivedCallbacks.slice(-MAX_RECEIVED);

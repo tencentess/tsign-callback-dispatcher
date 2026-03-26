@@ -17,5 +17,9 @@ config/users.json
 # Lock files (各子项目独立管理)
 package-lock.json
 
+# K8s secrets (NEVER commit plaintext credentials)
+k8s/secret.yaml
+k8s-test/secret.yaml
+
 # Docker test artifacts
 docker/test/k6/results/

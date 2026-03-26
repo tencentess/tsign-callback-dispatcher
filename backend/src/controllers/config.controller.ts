@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import * as configService from '../services/config.service';
 import { generateEncryptKey, generateSignToken } from '../utils/crypto.util';
 import { loadAppConfig, saveAppConfig } from '../config/app.config';
@@ -18,11 +19,11 @@ export async function getCallback(req: Request, res: Response): Promise<void> {
   res.json({ code: 0, message: 'success', data: callback });
 }
 
-export async function createCallback(req: Request, res: Response): Promise<void> {
+export async function createCallback(req: AuthenticatedRequest, res: Response): Promise<void> {
   const { name, url, appType = 'company', tags = [], matchRules = [], enabled = true, retryCount = 3, timeout = 10000, headers, msgTypes, unknownMsgTypePolicy, builtInTagMissPolicy, encryptKey, signToken, reEncrypt, remark } = req.body;
   const newCallback = await configService.addCallback({
     name, url, appType, tags, matchRules, enabled, retryCount, timeout, headers, msgTypes, unknownMsgTypePolicy, builtInTagMissPolicy, encryptKey, signToken, reEncrypt, remark,
-  });
+  }, req.user?.username);
   res.status(201).json({ code: 0, message: 'Created', data: newCallback });
 }
 
@@ -32,8 +33,8 @@ export function generateKeys(req: Request, res: Response): void {
   res.json({ code: 0, message: 'success', data: { encryptKey, signToken } });
 }
 
-export async function editCallback(req: Request, res: Response): Promise<void> {
-  const updated = await configService.updateCallback(req.params.id, req.body);
+export async function editCallback(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const updated = await configService.updateCallback(req.params.id, req.body, req.user?.username);
   if (!updated) {
     res.status(404).json({ code: 404, message: 'Callback not found' });
     return;
@@ -41,8 +42,8 @@ export async function editCallback(req: Request, res: Response): Promise<void> {
   res.json({ code: 0, message: 'Updated', data: updated });
 }
 
-export async function removeCallback(req: Request, res: Response): Promise<void> {
-  const success = await configService.deleteCallback(req.params.id);
+export async function removeCallback(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const success = await configService.deleteCallback(req.params.id, req.user?.username);
   if (!success) {
     res.status(404).json({ code: 404, message: 'Callback not found' });
     return;
@@ -65,14 +66,14 @@ export async function getTag(req: Request, res: Response): Promise<void> {
   res.json({ code: 0, message: 'success', data: tag });
 }
 
-export async function createTag(req: Request, res: Response): Promise<void> {
+export async function createTag(req: AuthenticatedRequest, res: Response): Promise<void> {
   const { name, key, type = 'text', options, color = '#1890ff', description } = req.body;
-  const newTag = await configService.addTag({ name, key, type, options, color, description });
+  const newTag = await configService.addTag({ name, key, type, options, color, description }, req.user?.username);
   res.status(201).json({ code: 0, message: 'Created', data: newTag });
 }
 
-export async function editTag(req: Request, res: Response): Promise<void> {
-  const updated = await configService.updateTag(req.params.id, req.body);
+export async function editTag(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const updated = await configService.updateTag(req.params.id, req.body, req.user?.username);
   if (!updated) {
     res.status(404).json({ code: 404, message: 'Tag not found' });
     return;
@@ -80,8 +81,8 @@ export async function editTag(req: Request, res: Response): Promise<void> {
   res.json({ code: 0, message: 'Updated', data: updated });
 }
 
-export async function removeTag(req: Request, res: Response): Promise<void> {
-  const success = await configService.deleteTag(req.params.id);
+export async function removeTag(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const success = await configService.deleteTag(req.params.id, req.user?.username);
   if (!success) {
     res.status(404).json({ code: 404, message: 'Tag not found' });
     return;
@@ -108,14 +109,14 @@ export async function getVersions(req: Request, res: Response): Promise<void> {
   res.json({ code: 0, message: 'success', data: versions });
 }
 
-export async function rollback(req: Request, res: Response): Promise<void> {
+export async function rollback(req: AuthenticatedRequest, res: Response): Promise<void> {
   const { type } = req.params;
   const { version } = req.body;
   if (!['callbacks', 'tags'].includes(type)) {
     res.status(400).json({ code: 400, message: 'Invalid config type' });
     return;
   }
-  const success = await configService.rollbackConfig(type, version);
+  const success = await configService.rollbackConfig(type, version, req.user?.username);
   if (!success) {
     res.status(404).json({ code: 404, message: 'Version not found' });
     return;

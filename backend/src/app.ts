@@ -10,7 +10,7 @@ import { validateCallbackBody, validateTagBody } from './middleware/validator.mi
 import { handleCallback, getReceivedCallbacks, clearReceivedCallbacks } from './controllers/callback.controller';
 import * as configCtrl from './controllers/config.controller';
 import * as authCtrl from './controllers/auth.controller';
-import { healthCheck } from './controllers/health.controller';
+import { healthCheck, systemStatus } from './controllers/health.controller';
 import { initConfigWatcher } from './services/config.service';
 import { initDefaultUser } from './services/auth.service';
 import logger from './services/logger.service';
@@ -21,19 +21,31 @@ const app = express();
 app.use(requestIdMiddleware);
 
 // ──── Security Middleware ────
+// SEC-013: Enable basic CSP (API-only backend, restrictive defaults)
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
 }));
 
+// SEC-006: CORS — default to same-origin (reject cross-origin) unless explicitly configured
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim())
-  : undefined;
+  : [];
 
-app.use(cors(
-  allowedOrigins
-    ? { origin: allowedOrigins, credentials: true }
-    : undefined
-));
+app.use(cors({
+  origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+  credentials: true,
+}));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -67,6 +79,8 @@ app.post('/api/callback', handleCallback);
 app.post('/api/auth/login', loginLimiter, authCtrl.login);
 
 // ──── Protected Routes (auth required) ────
+app.get('/api/system-status', authRequired, systemStatus);
+
 app.use('/api/auth/profile', authRequired);
 app.get('/api/auth/profile', authCtrl.getProfile);
 

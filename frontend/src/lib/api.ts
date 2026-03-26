@@ -116,7 +116,7 @@ export async function fetchLogs(limit = 100, offset = 0): Promise<{ logs: Operat
 
 // Health
 export async function fetchHealth(): Promise<any> {
-  const res = await api.get('/health');
+  const res = await api.get('/system-status');
   return res.data;
 }
 

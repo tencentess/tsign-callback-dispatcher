@@ -81,13 +81,14 @@ function flushLogsToFile(): void {
   logWriteTimer = null;
 }
 
-function addLog(type: OperationLog['type'], action: string, detail: string): void {
+function addLog(type: OperationLog['type'], action: string, detail: string, operator?: string): void {
   const log: OperationLog = {
     id: uuidv4(),
     type,
     action,
     detail,
     timestamp: new Date().toISOString(),
+    operator: operator || 'system',
   };
   operationLogs.unshift(log);
   if (operationLogs.length > MAX_OPERATION_LOGS) {
@@ -139,7 +140,7 @@ export async function getCallbackById(id: string): Promise<DispatchConfig | unde
   return config.callbacks.find((c) => c.id === id);
 }
 
-export async function addCallback(config: Omit<DispatchConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<DispatchConfig> {
+export async function addCallback(config: Omit<DispatchConfig, 'id' | 'createdAt' | 'updatedAt'>, operator?: string): Promise<DispatchConfig> {
   const callbacks = await getCallbacksConfig();
   const now = new Date().toISOString();
   const newConfig: DispatchConfig = {
@@ -154,11 +155,11 @@ export async function addCallback(config: Omit<DispatchConfig, 'id' | 'createdAt
   await store().write(CALLBACKS_KEY, callbacks);
   callbacksCache = callbacks;
   await saveConfigVersion('callbacks', callbacks, `Added callback: ${newConfig.name}`);
-  addLog('config_change', 'add_callback', `Added callback "${newConfig.name}" (${newConfig.url})`);
+  addLog('config_change', 'add_callback', `Added callback "${newConfig.name}" (${newConfig.url})`, operator);
   return newConfig;
 }
 
-export async function updateCallback(id: string, updates: Partial<DispatchConfig>): Promise<DispatchConfig | null> {
+export async function updateCallback(id: string, updates: Partial<DispatchConfig>, operator?: string): Promise<DispatchConfig | null> {
   const callbacks = await getCallbacksConfig();
   const index = callbacks.callbacks.findIndex((c) => c.id === id);
   if (index === -1) return null;
@@ -170,11 +171,11 @@ export async function updateCallback(id: string, updates: Partial<DispatchConfig
   await store().write(CALLBACKS_KEY, callbacks);
   callbacksCache = callbacks;
   await saveConfigVersion('callbacks', callbacks, `Updated callback: ${callbacks.callbacks[index].name}`);
-  addLog('config_change', 'update_callback', `Updated callback "${callbacks.callbacks[index].name}"`);
+  addLog('config_change', 'update_callback', `Updated callback "${callbacks.callbacks[index].name}"`, operator);
   return callbacks.callbacks[index];
 }
 
-export async function deleteCallback(id: string): Promise<boolean> {
+export async function deleteCallback(id: string, operator?: string): Promise<boolean> {
   const callbacks = await getCallbacksConfig();
   const index = callbacks.callbacks.findIndex((c) => c.id === id);
   if (index === -1) return false;
@@ -185,7 +186,7 @@ export async function deleteCallback(id: string): Promise<boolean> {
   await store().write(CALLBACKS_KEY, callbacks);
   callbacksCache = callbacks;
   await saveConfigVersion('callbacks', callbacks, `Deleted callback: ${deleted.name}`);
-  addLog('config_change', 'delete_callback', `Deleted callback "${deleted.name}" (${deleted.url})`);
+  addLog('config_change', 'delete_callback', `Deleted callback "${deleted.name}" (${deleted.url})`, operator);
   return true;
 }
 
@@ -206,7 +207,7 @@ export async function getTagById(id: string): Promise<TagDefinition | undefined>
   return config.tags.find((t) => t.id === id);
 }
 
-export async function addTag(tag: Omit<TagDefinition, 'id' | 'createdAt' | 'updatedAt'>): Promise<TagDefinition> {
+export async function addTag(tag: Omit<TagDefinition, 'id' | 'createdAt' | 'updatedAt'>, operator?: string): Promise<TagDefinition> {
   const tags = await getTagsConfig();
   const now = new Date().toISOString();
   const newTag: TagDefinition = {
@@ -220,11 +221,11 @@ export async function addTag(tag: Omit<TagDefinition, 'id' | 'createdAt' | 'upda
   tags.version++;
   await store().write(TAGS_KEY, tags);
   tagsCache = tags;
-  addLog('config_change', 'add_tag', `Added tag "${newTag.name}"`);
+  addLog('config_change', 'add_tag', `Added tag "${newTag.name}"`, operator);
   return newTag;
 }
 
-export async function updateTag(id: string, updates: Partial<TagDefinition>): Promise<TagDefinition | null> {
+export async function updateTag(id: string, updates: Partial<TagDefinition>, operator?: string): Promise<TagDefinition | null> {
   const tags = await getTagsConfig();
   const index = tags.tags.findIndex((t) => t.id === id);
   if (index === -1) return null;
@@ -235,11 +236,11 @@ export async function updateTag(id: string, updates: Partial<TagDefinition>): Pr
   tags.version++;
   await store().write(TAGS_KEY, tags);
   tagsCache = tags;
-  addLog('config_change', 'update_tag', `Updated tag "${tags.tags[index].name}"`);
+  addLog('config_change', 'update_tag', `Updated tag "${tags.tags[index].name}"`, operator);
   return tags.tags[index];
 }
 
-export async function deleteTag(id: string): Promise<boolean> {
+export async function deleteTag(id: string, operator?: string): Promise<boolean> {
   const tags = await getTagsConfig();
   const index = tags.tags.findIndex((t) => t.id === id);
   if (index === -1) return false;
@@ -251,7 +252,7 @@ export async function deleteTag(id: string): Promise<boolean> {
   tags.version++;
   await store().write(TAGS_KEY, tags);
   tagsCache = tags;
-  addLog('config_change', 'delete_tag', `Deleted tag "${deleted.name}"`);
+  addLog('config_change', 'delete_tag', `Deleted tag "${deleted.name}"`, operator);
   return true;
 }
 
@@ -277,7 +278,7 @@ export async function getConfigVersions(configType: string): Promise<ConfigVersi
   return versions;
 }
 
-export async function rollbackConfig(configType: string, version: number): Promise<boolean> {
+export async function rollbackConfig(configType: string, version: number, operator?: string): Promise<boolean> {
   const versionKey = `${VERSIONS_PREFIX}${configType}-v${version}.json`;
   const exists = await store().exists(versionKey);
   if (!exists) return false;
@@ -291,7 +292,7 @@ export async function rollbackConfig(configType: string, version: number): Promi
   if (configType === 'callbacks') callbacksCache = null;
   else tagsCache = null;
 
-  addLog('config_change', 'rollback', `Rolled back ${configType} to version ${version}`);
+  addLog('config_change', 'rollback', `Rolled back ${configType} to version ${version}`, operator);
   return true;
 }
 

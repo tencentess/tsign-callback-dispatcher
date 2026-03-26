@@ -30,8 +30,13 @@ export class FileConfigStore implements ConfigStore {
   }
 
   private resolvePath(key: string): string {
-    // key 格式如 "callbacks.json" 或 "versions/callbacks-v1.json"
-    return path.join(this.baseDir, key);
+    // SEC-005: Prevent path traversal — resolved path must stay within baseDir
+    const resolved = path.resolve(this.baseDir, key);
+    const normalizedBase = path.resolve(this.baseDir);
+    if (!resolved.startsWith(normalizedBase + path.sep) && resolved !== normalizedBase) {
+      throw new Error(`Path traversal detected: "${key}" resolves outside config directory`);
+    }
+    return resolved;
   }
 
   async read<T>(key: string, defaultValue: T): Promise<T> {
