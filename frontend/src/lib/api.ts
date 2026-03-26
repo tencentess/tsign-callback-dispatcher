@@ -2,18 +2,34 @@ import axios from 'axios';
 import { DispatchConfig, TagDefinition, OperationLog, TSignConfig, ApiResponse } from '../types/api.types';
 import { getToken, clearAuth } from './auth';
 
+/**
+ * Generate a unique request ID (UUID v4-like).
+ */
+function generateRequestId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // fallback
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 const api = axios.create({
   baseURL: '/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor: attach auth token
+// Request interceptor: attach auth token + unique request ID
 api.interceptors.request.use((config) => {
   const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers['X-Request-Id'] = generateRequestId();
   return config;
 });
 

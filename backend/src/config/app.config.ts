@@ -1,8 +1,7 @@
-import path from 'path';
-import fs from 'fs';
 import { AppConfig } from '../types/config.types';
+import { getConfigStore, getStoreType } from '../store';
 
-const CONFIG_DIR = process.env.CONFIG_DIR || path.resolve(__dirname, '../../../config');
+const APP_CONFIG_KEY = 'app.json';
 
 const defaultConfig: AppConfig = {
   server: { port: 3001, host: '0.0.0.0' },
@@ -11,30 +10,31 @@ const defaultConfig: AppConfig = {
   log: { level: 'info', maxFiles: 30 },
 };
 
-let _appConfig: AppConfig;
+let _appConfig: AppConfig = { ...defaultConfig };
 
-export function loadAppConfig(): AppConfig {
-  const configPath = path.join(CONFIG_DIR, 'app.json');
-  if (!fs.existsSync(configPath)) {
-    return { ...defaultConfig };
-  }
-  const raw = fs.readFileSync(configPath, 'utf-8');
-  return { ...defaultConfig, ...JSON.parse(raw) };
+export async function loadAppConfig(): Promise<AppConfig> {
+  const store = getConfigStore();
+  const stored = await store.read<Partial<AppConfig>>(APP_CONFIG_KEY, {});
+  _appConfig = { ...defaultConfig, ...stored };
+  return _appConfig;
 }
 
-export function saveAppConfig(config: AppConfig): void {
-  const configPath = path.join(CONFIG_DIR, 'app.json');
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+export async function saveAppConfig(config: AppConfig): Promise<void> {
+  const store = getConfigStore();
+  await store.write(APP_CONFIG_KEY, config);
   _appConfig = config;
 }
 
-export function getConfigDir(): string {
-  return CONFIG_DIR;
+/**
+ * 同步获取已加载的 appConfig（必须先调用 loadAppConfig）
+ */
+export function getAppConfig(): AppConfig {
+  return _appConfig;
 }
 
-_appConfig = loadAppConfig();
+/**
+ * 获取存储后端类型（供外部判断）
+ */
+export { getStoreType };
 
 export { _appConfig as appConfig };

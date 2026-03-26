@@ -97,25 +97,22 @@ export function matchTags(message: TSignCallbackMessage, rules: TagMatchRule[]):
   return Array.from(matchedTags);
 }
 
-export function shouldDispatch(
+export async function shouldDispatch(
   message: TSignCallbackMessage,
   config: { tags: TagValue[]; matchRules: TagMatchRule[]; msgTypes?: string[]; unknownMsgTypePolicy?: UnknownMsgTypePolicy; builtInTagMissPolicy?: BuiltInTagMissPolicy }
-): boolean {
+): Promise<boolean> {
   // Check message type filter
   if (config.msgTypes && config.msgTypes.length > 0) {
     const isKnownType = ALL_KNOWN_MSG_TYPES.has(message.MsgType);
 
     if (!isKnownType) {
-      // 未知事件类型：根据策略决定
       const policy = config.unknownMsgTypePolicy || 'dispatch';
       if (policy === 'discard') {
-        logger.info(`Unknown MsgType "${message.MsgType}" discarded by policy for config`);
+        logger.debug(`Unknown MsgType "${message.MsgType}" discarded by policy for config`);
         return false;
       }
-      // policy === 'dispatch' → 放行未知类型
-      logger.info(`Unknown MsgType "${message.MsgType}" dispatched by policy`);
+      logger.debug(`Unknown MsgType "${message.MsgType}" dispatched by policy`);
     } else {
-      // 已知事件类型：严格匹配已选列表
       if (!config.msgTypes.includes(message.MsgType)) {
         return false;
       }
@@ -128,8 +125,7 @@ export function shouldDispatch(
   }
 
   // 内置标签直接从消息字段匹配（FlowType/UserData 等）
-  // Get tag definitions once, build lookup map for O(1) access
-  const tagsConfig = getTagsConfig();
+  const tagsConfig = await getTagsConfig();
   const tagDefMap = new Map(tagsConfig.tags.map((t) => [t.key, t]));
 
   if (config.tags.length > 0) {

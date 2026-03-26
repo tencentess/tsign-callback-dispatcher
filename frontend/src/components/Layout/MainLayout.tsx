@@ -78,15 +78,14 @@ const MainLayout: React.FC = () => {
         } bg-white shadow-lg flex flex-col transition-all duration-300 ease-in-out flex-shrink-0`}
       >
         {/* Logo */}
-        <div className={`${collapsed ? 'h-[64px] flex items-center justify-center' : 'pt-4 pb-3'} border-b border-gray-100 px-4 overflow-hidden`}>
+        <div className={`${collapsed ? 'h-[64px] flex items-center justify-center' : 'h-[64px] flex items-center'} border-b border-gray-100 px-4 overflow-hidden`}>
           {!collapsed ? (
-            <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-2">
               <img src={logoSvg} alt="logo" className="h-7 flex-shrink-0" />
-              <span className="text-sm font-semibold text-gray-800">回调分发服务</span>
             </div>
           ) : (
-            <div className="flex items-center justify-center w-full">
-              <img src={logoSvg} alt="logo" className="w-8 h-8 object-contain object-left" style={{ clipPath: 'inset(0 80% 0 0)' }} />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #0d9488 100%)' }}>
+              <span className="text-white text-sm font-bold">签</span>
             </div>
           )}
         </div>

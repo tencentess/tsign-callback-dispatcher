@@ -400,7 +400,7 @@ const CallbackManagementPage: React.FC = () => {
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-800">回调地址配置</h2>
+            <h2 className="text-lg font-semibold text-gray-800">回调地址配置</h2>
             <p className="text-sm text-gray-500 mt-1">管理消息分发的目标地址，支持按标签和消息类型进行精准分发</p>
           </div>
           <Button theme="primary" icon={<AddIcon />} onClick={handleAdd}>

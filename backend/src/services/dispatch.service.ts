@@ -4,7 +4,7 @@ import { getCallbacksConfig } from './config.service';
 import { shouldDispatch } from './tag-matcher.service';
 import { httpPostWithRetry } from '../utils/http.util';
 import { encryptAES256CBC, generateSignature, generateId } from '../utils/crypto.util';
-import { appConfig } from '../config/app.config';
+import { getAppConfig } from '../config/app.config';
 import logger from './logger.service';
 
 function buildDispatchPayload(message: TSignCallbackMessage, callbackConfig: DispatchConfig) {
@@ -24,7 +24,6 @@ function buildDispatchPayload(message: TSignCallbackMessage, callbackConfig: Dis
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       logger.error(`Re-encryption failed for "${callbackConfig.name}": ${errMsg}, falling back to plaintext`);
-      // Fall through to plaintext dispatch
     }
   }
 
@@ -32,32 +31,33 @@ function buildDispatchPayload(message: TSignCallbackMessage, callbackConfig: Dis
 }
 
 export async function dispatchMessage(message: TSignCallbackMessage): Promise<DispatchResult[]> {
-  const config = getCallbacksConfig();
+  const config = await getCallbacksConfig();
   const results: DispatchResult[] = [];
 
   const enabledCallbacks = config.callbacks.filter((c) => c.enabled);
-  logger.info(
+  logger.debug(
     `Dispatching message MsgType=${message.MsgType} MsgId=${message.MsgId} to ${enabledCallbacks.length} enabled targets`
   );
 
+  const appCfg = getAppConfig();
   const dispatchPromises = enabledCallbacks.map(async (callbackConfig) => {
-    if (!shouldDispatch(message, callbackConfig)) {
+    if (!(await shouldDispatch(message, callbackConfig))) {
       logger.debug(`Skipping ${callbackConfig.name}: tag/type not matched`);
       return null;
     }
 
     const { data, params } = buildDispatchPayload(message, callbackConfig);
     const mode = params ? 'encrypted' : 'plaintext';
-    logger.info(`Dispatching to "${callbackConfig.name}" (${callbackConfig.url}) [${mode}]`);
+    logger.debug(`Dispatching to "${callbackConfig.name}" (${callbackConfig.url}) [${mode}]`);
 
     const result = await httpPostWithRetry({
       url: callbackConfig.url,
       data,
       params,
       headers: callbackConfig.headers,
-      timeout: callbackConfig.timeout || appConfig.dispatch.defaultTimeout,
-      retryCount: callbackConfig.retryCount ?? appConfig.dispatch.defaultRetryCount,
-      retryDelay: appConfig.dispatch.retryDelay,
+      timeout: callbackConfig.timeout || appCfg.dispatch.defaultTimeout,
+      retryCount: callbackConfig.retryCount ?? appCfg.dispatch.defaultRetryCount,
+      retryDelay: appCfg.dispatch.retryDelay,
     });
 
     const dispatchResult: DispatchResult = {
@@ -73,7 +73,8 @@ export async function dispatchMessage(message: TSignCallbackMessage): Promise<Di
     };
 
     const status = result.success ? 'SUCCESS' : 'FAILED';
-    logger.info(`[Dispatch ${status}] ${callbackConfig.name} (${callbackConfig.url}) - MsgType: ${message.MsgType}, MsgId: ${message.MsgId}, duration: ${result.duration}ms, retries: ${result.retryCount}`);
+    const logLevel = result.success ? 'debug' : 'warn';
+    logger[logLevel](`[Dispatch ${status}] ${callbackConfig.name} → ${callbackConfig.url} MsgType=${message.MsgType} MsgId=${message.MsgId} ${result.duration}ms retries=${result.retryCount}`);
 
     if (!result.success) {
       logger.error(`Dispatch failed to "${callbackConfig.name}": ${result.error}`);
@@ -89,7 +90,7 @@ export async function dispatchMessage(message: TSignCallbackMessage): Promise<Di
     }
   }
 
-  logger.info(
+  logger.debug(
     `Dispatch complete: ${results.filter((r) => r.success).length}/${results.length} succeeded`
   );
 

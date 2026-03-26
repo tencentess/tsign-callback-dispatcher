@@ -1,14 +1,36 @@
-# ── 阶段1: 在本机架构上执行 npm ci & build（避免 QEMU 模拟 Node.js）──
+# 构建阶段：始终在本机架构上运行 npm ci + vite build，避免 QEMU 模拟崩溃
 FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 WORKDIR /app
 COPY frontend/package*.json ./
-RUN npm ci --maxsockets=1
+RUN npm ci
 COPY frontend/ .
 RUN npm run build
 
-# ── 阶段2: 目标架构的最终镜像（只拷贝静态产物）──
-FROM --platform=$TARGETPLATFORM nginx:alpine
+# 运行阶段：使用目标架构（如 linux/amd64），产物是纯静态文件与架构无关
+FROM nginx:alpine
+
+# 预创建 nginx 缓存/临时目录并赋权给 nginx 用户（uid 101）
+# 这样 nginx 启动时不需要 chown，避免 K8s 非 root 安全策略报错
+RUN mkdir -p /var/cache/nginx/client_temp \
+             /var/cache/nginx/proxy_temp \
+             /var/cache/nginx/fastcgi_temp \
+             /var/cache/nginx/uwsgi_temp \
+             /var/cache/nginx/scgi_temp \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && chown -R nginx:nginx /var/log/nginx \
+    && chown -R nginx:nginx /etc/nginx/conf.d \
+    && touch /var/run/nginx.pid \
+    && chown nginx:nginx /var/run/nginx.pid \
+    && sed -i 's/^user  nginx;/#user  nginx;/' /etc/nginx/nginx.conf
+
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+COPY docker/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# 以非 root 用户运行
+USER nginx
+
+EXPOSE 8080
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

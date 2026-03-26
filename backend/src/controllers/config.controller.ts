@@ -1,16 +1,16 @@
 import { Request, Response } from 'express';
 import * as configService from '../services/config.service';
 import { generateEncryptKey, generateSignToken } from '../utils/crypto.util';
-import { appConfig, loadAppConfig, saveAppConfig } from '../config/app.config';
+import { loadAppConfig, saveAppConfig } from '../config/app.config';
 
 // ========== Callbacks ==========
-export function getCallbacks(req: Request, res: Response): void {
-  const config = configService.getCallbacksConfig();
+export async function getCallbacks(req: Request, res: Response): Promise<void> {
+  const config = await configService.getCallbacksConfig();
   res.json({ code: 0, message: 'success', data: config.callbacks });
 }
 
-export function getCallback(req: Request, res: Response): void {
-  const callback = configService.getCallbackById(req.params.id);
+export async function getCallback(req: Request, res: Response): Promise<void> {
+  const callback = await configService.getCallbackById(req.params.id);
   if (!callback) {
     res.status(404).json({ code: 404, message: 'Callback not found' });
     return;
@@ -18,9 +18,9 @@ export function getCallback(req: Request, res: Response): void {
   res.json({ code: 0, message: 'success', data: callback });
 }
 
-export function createCallback(req: Request, res: Response): void {
+export async function createCallback(req: Request, res: Response): Promise<void> {
   const { name, url, appType = 'company', tags = [], matchRules = [], enabled = true, retryCount = 3, timeout = 10000, headers, msgTypes, unknownMsgTypePolicy, builtInTagMissPolicy, encryptKey, signToken, reEncrypt, remark } = req.body;
-  const newCallback = configService.addCallback({
+  const newCallback = await configService.addCallback({
     name, url, appType, tags, matchRules, enabled, retryCount, timeout, headers, msgTypes, unknownMsgTypePolicy, builtInTagMissPolicy, encryptKey, signToken, reEncrypt, remark,
   });
   res.status(201).json({ code: 0, message: 'Created', data: newCallback });
@@ -32,8 +32,8 @@ export function generateKeys(req: Request, res: Response): void {
   res.json({ code: 0, message: 'success', data: { encryptKey, signToken } });
 }
 
-export function editCallback(req: Request, res: Response): void {
-  const updated = configService.updateCallback(req.params.id, req.body);
+export async function editCallback(req: Request, res: Response): Promise<void> {
+  const updated = await configService.updateCallback(req.params.id, req.body);
   if (!updated) {
     res.status(404).json({ code: 404, message: 'Callback not found' });
     return;
@@ -41,8 +41,8 @@ export function editCallback(req: Request, res: Response): void {
   res.json({ code: 0, message: 'Updated', data: updated });
 }
 
-export function removeCallback(req: Request, res: Response): void {
-  const success = configService.deleteCallback(req.params.id);
+export async function removeCallback(req: Request, res: Response): Promise<void> {
+  const success = await configService.deleteCallback(req.params.id);
   if (!success) {
     res.status(404).json({ code: 404, message: 'Callback not found' });
     return;
@@ -51,13 +51,13 @@ export function removeCallback(req: Request, res: Response): void {
 }
 
 // ========== Tags ==========
-export function getTags(req: Request, res: Response): void {
-  const config = configService.getTagsConfig();
+export async function getTags(req: Request, res: Response): Promise<void> {
+  const config = await configService.getTagsConfig();
   res.json({ code: 0, message: 'success', data: config.tags });
 }
 
-export function getTag(req: Request, res: Response): void {
-  const tag = configService.getTagById(req.params.id);
+export async function getTag(req: Request, res: Response): Promise<void> {
+  const tag = await configService.getTagById(req.params.id);
   if (!tag) {
     res.status(404).json({ code: 404, message: 'Tag not found' });
     return;
@@ -65,14 +65,14 @@ export function getTag(req: Request, res: Response): void {
   res.json({ code: 0, message: 'success', data: tag });
 }
 
-export function createTag(req: Request, res: Response): void {
+export async function createTag(req: Request, res: Response): Promise<void> {
   const { name, key, type = 'text', options, color = '#1890ff', description } = req.body;
-  const newTag = configService.addTag({ name, key, type, options, color, description });
+  const newTag = await configService.addTag({ name, key, type, options, color, description });
   res.status(201).json({ code: 0, message: 'Created', data: newTag });
 }
 
-export function editTag(req: Request, res: Response): void {
-  const updated = configService.updateTag(req.params.id, req.body);
+export async function editTag(req: Request, res: Response): Promise<void> {
+  const updated = await configService.updateTag(req.params.id, req.body);
   if (!updated) {
     res.status(404).json({ code: 404, message: 'Tag not found' });
     return;
@@ -80,8 +80,8 @@ export function editTag(req: Request, res: Response): void {
   res.json({ code: 0, message: 'Updated', data: updated });
 }
 
-export function removeTag(req: Request, res: Response): void {
-  const success = configService.deleteTag(req.params.id);
+export async function removeTag(req: Request, res: Response): Promise<void> {
+  const success = await configService.deleteTag(req.params.id);
   if (!success) {
     res.status(404).json({ code: 404, message: 'Tag not found' });
     return;
@@ -90,32 +90,32 @@ export function removeTag(req: Request, res: Response): void {
 }
 
 // ========== Logs & Stats ==========
-export function getLogs(req: Request, res: Response): void {
+export async function getLogs(req: Request, res: Response): Promise<void> {
   const limit = parseInt(req.query.limit as string) || 100;
   const offset = parseInt(req.query.offset as string) || 0;
-  const result = configService.getOperationLogs(limit, offset);
+  const result = await configService.getOperationLogs(limit, offset);
   res.json({ code: 0, message: 'success', data: result });
 }
 
 // ========== Versions ==========
-export function getVersions(req: Request, res: Response): void {
+export async function getVersions(req: Request, res: Response): Promise<void> {
   const configType = req.params.type;
   if (!['callbacks', 'tags'].includes(configType)) {
     res.status(400).json({ code: 400, message: 'Invalid config type' });
     return;
   }
-  const versions = configService.getConfigVersions(configType);
+  const versions = await configService.getConfigVersions(configType);
   res.json({ code: 0, message: 'success', data: versions });
 }
 
-export function rollback(req: Request, res: Response): void {
+export async function rollback(req: Request, res: Response): Promise<void> {
   const { type } = req.params;
   const { version } = req.body;
   if (!['callbacks', 'tags'].includes(type)) {
     res.status(400).json({ code: 400, message: 'Invalid config type' });
     return;
   }
-  const success = configService.rollbackConfig(type, version);
+  const success = await configService.rollbackConfig(type, version);
   if (!success) {
     res.status(404).json({ code: 404, message: 'Version not found' });
     return;
@@ -129,8 +129,8 @@ function maskSecret(secret: string): string {
   return secret.substring(0, 4) + '****' + secret.substring(secret.length - 4);
 }
 
-export function getTSignConfig(req: Request, res: Response): void {
-  const config = loadAppConfig();
+export async function getTSignConfig(req: Request, res: Response): Promise<void> {
+  const config = await loadAppConfig();
   res.json({
     code: 0,
     message: 'success',
@@ -143,14 +143,14 @@ export function getTSignConfig(req: Request, res: Response): void {
   });
 }
 
-export function updateTSignConfig(req: Request, res: Response): void {
+export async function updateTSignConfig(req: Request, res: Response): Promise<void> {
   const { encryptKey, token } = req.body;
   if (typeof encryptKey !== 'string' || typeof token !== 'string') {
     res.status(400).json({ code: 400, message: 'encryptKey and token must be strings' });
     return;
   }
-  const config = loadAppConfig();
+  const config = await loadAppConfig();
   config.tsign = { encryptKey, token };
-  saveAppConfig(config);
+  await saveAppConfig(config);
   res.json({ code: 0, message: 'TSign config updated' });
 }

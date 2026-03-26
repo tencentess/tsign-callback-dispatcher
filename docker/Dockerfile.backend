@@ -1,22 +1,17 @@
-# ── 阶段1: 在本机架构上执行 npm ci & build（避免 QEMU 模拟 Node.js）──
+# 构建阶段：始终在本机架构上运行 npm ci + tsc，避免 QEMU 模拟崩溃
 FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 WORKDIR /app
 COPY backend/package*.json ./
-RUN npm ci --maxsockets=1
+RUN npm ci
 COPY backend/ .
 RUN npm run build
 
-# ── 阶段2: 目标架构的最终镜像（只拷贝产物，不执行 npm）──
-FROM --platform=$TARGETPLATFORM node:20-alpine AS deps
+# 运行阶段：使用目标架构（如 linux/amd64）
+FROM node:20-alpine
 WORKDIR /app
-COPY backend/package*.json ./
-RUN npm ci --omit=dev --maxsockets=1
-
-FROM --platform=$TARGETPLATFORM node:20-alpine
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=deps /app/package.json .
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json .
 COPY config/ ./config/
 
 RUN mkdir -p /app/logs

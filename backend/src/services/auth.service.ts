@@ -1,8 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
-import path from 'path';
-import { getConfigDir } from '../config/app.config';
+import { getConfigStore } from '../store';
 import logger from './logger.service';
 
 interface UserRecord {
@@ -16,44 +14,39 @@ interface UsersFile {
   users: UserRecord[];
 }
 
+const USERS_KEY = 'users.json';
 const JWT_SECRET = process.env.JWT_SECRET || 'tsign-dispatcher-default-secret-change-me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 const BCRYPT_ROUNDS = 10;
 
-function getUsersFilePath(): string {
-  return path.join(getConfigDir(), 'users.json');
+/** Mask username: keep first char, mask the rest with '*' */
+function maskUser(name: string): string {
+  if (!name) return '***';
+  if (name.length <= 1) return name[0] + '**';
+  return name[0] + '*'.repeat(Math.min(name.length - 1, 5));
 }
 
-function loadUsers(): UsersFile {
-  const filePath = getUsersFilePath();
-  if (!fs.existsSync(filePath)) {
-    return { users: [] };
-  }
-  try {
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(raw) as UsersFile;
-  } catch {
-    return { users: [] };
-  }
+async function loadUsers(): Promise<UsersFile> {
+  const data = await getConfigStore().read<UsersFile>(USERS_KEY, { users: [] });
+  logger.debug(`Loaded ${data.users.length} user(s) from store`);
+  return data;
 }
 
-function saveUsers(data: UsersFile): void {
-  const filePath = getUsersFilePath();
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+async function saveUsers(data: UsersFile): Promise<void> {
+  await getConfigStore().write(USERS_KEY, data);
 }
 
 /**
  * Initialize default admin user if no users exist.
- * Default: admin / admin123 (MUST be changed on first login in production)
  */
-export function initDefaultUser(): void {
-  const data = loadUsers();
+export async function initDefaultUser(): Promise<void> {
+  const data = await loadUsers();
   if (data.users.length === 0) {
     const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123';
+    logger.info(`No users found. Creating default user.`, {
+      passwordSource: process.env.ADMIN_DEFAULT_PASSWORD ? 'env' : 'hardcoded default',
+      passwordLength: defaultPassword.length,
+    });
     const hash = bcrypt.hashSync(defaultPassword, BCRYPT_ROUNDS);
     data.users.push({
       username: 'admin',
@@ -61,23 +54,46 @@ export function initDefaultUser(): void {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
-    saveUsers(data);
-    logger.info('Default admin user created (username: admin). Please change the password immediately.');
+    await saveUsers(data);
+    logger.info('Default user created. Please change the password immediately.');
+  } else {
+    logger.debug(`Found ${data.users.length} existing user(s), skipping default user creation.`);
   }
 }
 
-export function authenticate(username: string, password: string): string | null {
-  const data = loadUsers();
+export async function authenticate(username: string, password: string): Promise<string | null> {
+  const masked = maskUser(username);
+  logger.debug(`Authentication attempt for user: ${masked}`);
+
+  const data = await loadUsers();
   const user = data.users.find((u) => u.username === username);
+
   if (!user) {
+    logger.warn(`Authentication failed: user not found`, { user: masked, totalUsers: data.users.length });
     return null;
   }
-  if (!bcrypt.compareSync(password, user.passwordHash)) {
+
+  logger.debug(`User found, verifying password...`, {
+    user: masked,
+    inputPasswordLength: password.length,
+  });
+
+  const passwordMatch = bcrypt.compareSync(password, user.passwordHash);
+  if (!passwordMatch) {
+    logger.warn(`Authentication failed: password mismatch`, {
+      user: masked,
+      inputPasswordLength: password.length,
+      hashAlgorithm: user.passwordHash.substring(0, 4),
+      userUpdatedAt: user.updatedAt,
+    });
     return null;
   }
+
   const token = jwt.sign({ username: user.username }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN as string | number,
   } as jwt.SignOptions);
+
+  logger.debug(`Authentication successful for user: ${masked}`);
   return token;
 }
 
@@ -85,23 +101,29 @@ export function verifyToken(token: string): { username: string } | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { username: string };
     return decoded;
-  } catch {
+  } catch (err: any) {
+    logger.debug(`Token verification failed: ${err.message}`);
     return null;
   }
 }
 
-export function changePassword(username: string, oldPassword: string, newPassword: string): boolean {
-  const data = loadUsers();
+export async function changePassword(username: string, oldPassword: string, newPassword: string): Promise<boolean> {
+  const masked = maskUser(username);
+  logger.info(`Password change attempt for user: ${masked}`);
+
+  const data = await loadUsers();
   const user = data.users.find((u) => u.username === username);
   if (!user) {
+    logger.warn(`Password change failed: user not found`, { user: masked });
     return false;
   }
   if (!bcrypt.compareSync(oldPassword, user.passwordHash)) {
+    logger.warn(`Password change failed: old password mismatch`, { user: masked });
     return false;
   }
   user.passwordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
   user.updatedAt = new Date().toISOString();
-  saveUsers(data);
-  logger.info(`Password changed for user: ${username}`);
+  await saveUsers(data);
+  logger.info(`Password changed successfully for user: ${masked}`);
   return true;
 }

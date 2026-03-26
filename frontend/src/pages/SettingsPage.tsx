@@ -93,7 +93,7 @@ const SettingsPage: React.FC = () => {
     <div className="space-y-6">
       {/* System Status */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50">
-        <h2 className="text-base font-semibold text-gray-800 mb-4">系统状态</h2>
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">系统状态</h2>
         {health ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-green-50 rounded-lg p-4">
@@ -126,7 +126,7 @@ const SettingsPage: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <LockOnIcon size={20} className="text-primary" />
-            <h2 className="text-base font-semibold text-gray-800">回调加密配置</h2>
+            <h2 className="text-lg font-semibold text-gray-800">回调加密配置</h2>
           </div>
           <a
             href={CALLBACK_FAQ_URL}
@@ -246,7 +246,7 @@ const SettingsPage: React.FC = () => {
 
       {/* Configuration Guide */}
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50">
-        <h2 className="text-base font-semibold text-gray-800 mb-4">配置说明</h2>
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">配置说明</h2>
         <div className="space-y-4">
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">腾讯电子签回调配置</h3>

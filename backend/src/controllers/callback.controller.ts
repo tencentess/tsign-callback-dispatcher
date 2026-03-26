@@ -13,7 +13,7 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
     const { timestamp, nonce, msg_signature } = req.query as Record<string, string>;
     const body = req.body as EncryptedCallbackMessage;
 
-    logger.info('Received callback from TSign');
+    logger.debug('Received callback from TSign');
 
     // Verify signature (mandatory in production)
     if (msg_signature && timestamp && nonce && body.encrypt) {
@@ -25,7 +25,8 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
       }
     } else if (process.env.NODE_ENV === 'production') {
       // In production, signature parameters are mandatory when token is configured
-      const { token } = require('../config/app.config').appConfig.tsign;
+      const { getAppConfig } = require('../config/app.config');
+      const { token } = getAppConfig().tsign;
       if (token) {
         logger.warn('Missing signature parameters in production with token configured');
         res.status(403).json({ code: 403, message: 'Signature verification required' });
@@ -55,7 +56,7 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
     // Dispatch to configured targets (errors handled internally)
     try {
       const results = await dispatchMessage(message);
-      logger.info(`Dispatched MsgId=${message.MsgId} to ${results.length} targets`);
+      logger.debug(`Dispatched MsgId=${message.MsgId} to ${results.length} targets`);
     } catch (dispatchErr) {
       const errMsg = dispatchErr instanceof Error ? dispatchErr.message : String(dispatchErr);
       logger.error(`Dispatch failed for MsgId=${message.MsgId}: ${errMsg}`);

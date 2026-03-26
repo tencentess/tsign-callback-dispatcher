@@ -2,7 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { appConfig } from './config/app.config';
+import { loadAppConfig, getAppConfig, getStoreType } from './config/app.config';
+import { requestIdMiddleware } from './middleware/request-id.middleware';
 import { requestLogger } from './middleware/logger.middleware';
 import { authRequired } from './middleware/auth.middleware';
 import { validateCallbackBody, validateTagBody } from './middleware/validator.middleware';
@@ -16,12 +17,14 @@ import logger from './services/logger.service';
 
 const app = express();
 
+// ──── Request ID (must be first) ────
+app.use(requestIdMiddleware);
+
 // ──── Security Middleware ────
 app.use(helmet({
-  contentSecurityPolicy: false, // Let nginx handle CSP for the frontend
+  contentSecurityPolicy: false,
 }));
 
-// CORS: restrict to configured origins in production
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map((s) => s.trim())
   : undefined;
@@ -29,7 +32,7 @@ const allowedOrigins = process.env.CORS_ORIGINS
 app.use(cors(
   allowedOrigins
     ? { origin: allowedOrigins, credentials: true }
-    : undefined // dev: allow all
+    : undefined
 ));
 
 app.use(express.json({ limit: '10mb' }));
@@ -37,38 +40,30 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
 // ──── Rate Limiting ────
-// Login endpoint: strict rate limit to prevent brute-force
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: { code: 429, message: 'Too many login attempts, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// General API rate limit
 const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
+  windowMs: 1 * 60 * 1000,
   max: 200,
   message: { code: 429, message: 'Too many requests' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Apply general rate limit to all /api/ routes except callback (high-throughput)
 app.use('/api/', (req: Request, res: Response, next: NextFunction) => {
   if (req.path === '/callback') return next();
   return apiLimiter(req, res, next);
 });
 
 // ──── Public Routes (no auth) ────
-// Health check
 app.get('/api/health', healthCheck);
-
-// TSign callback endpoint (called by e-sign platform, must be public)
 app.post('/api/callback', handleCallback);
-
-// Auth routes
 app.post('/api/auth/login', loginLimiter, authCtrl.login);
 
 // ──── Protected Routes (auth required) ────
@@ -78,7 +73,6 @@ app.get('/api/auth/profile', authCtrl.getProfile);
 app.use('/api/auth/password', authRequired);
 app.put('/api/auth/password', authCtrl.updatePassword);
 
-// Protect all management APIs
 app.get('/api/received-callbacks', authRequired, getReceivedCallbacks);
 app.delete('/api/received-callbacks', authRequired, clearReceivedCallbacks);
 
@@ -100,17 +94,13 @@ app.delete('/api/tags/:id', authRequired, configCtrl.removeTag);
 // Logs
 app.get('/api/logs', authRequired, configCtrl.getLogs);
 
-// TSign config (encryptKey / token)
+// TSign config
 app.get('/api/tsign-config', authRequired, configCtrl.getTSignConfig);
 app.put('/api/tsign-config', authRequired, configCtrl.updateTSignConfig);
 
 // Config versions
 app.get('/api/versions/:type', authRequired, configCtrl.getVersions);
 app.post('/api/versions/:type/rollback', authRequired, configCtrl.rollback);
-
-// Initialize config file watcher and default user
-initConfigWatcher();
-initDefaultUser();
 
 // ──── Global error handling middleware ────
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
@@ -131,10 +121,32 @@ process.on('unhandledRejection', (reason) => {
   logger.error(`Unhandled promise rejection: ${msg}`, { stack });
 });
 
-// Start server
-const { port, host } = appConfig.server;
-app.listen(port, host, () => {
-  logger.info(`TSign Callback Dispatcher backend running at http://${host}:${port}`);
+// ──── Async startup ────
+async function bootstrap(): Promise<void> {
+  logger.debug(`CONFIG_STORE=${process.env.CONFIG_STORE || '(not set)'}, resolved store type: ${getStoreType()}`);
+  logger.debug(`JWT_SECRET: ${process.env.JWT_SECRET ? 'set from env' : 'using default (INSECURE)'}`);
+  logger.debug(`ADMIN_DEFAULT_PASSWORD: ${process.env.ADMIN_DEFAULT_PASSWORD ? 'set from env' : 'using default'}`);
+
+  // 1. 加载应用配置（通过 ConfigStore）
+  await loadAppConfig();
+
+  // 2. 初始化配置监听 + 内置标签
+  await initConfigWatcher();
+
+  // 3. 初始化默认用户
+  await initDefaultUser();
+
+  // 4. 启动服务器
+  const { port, host } = getAppConfig().server;
+  app.listen(port, host, () => {
+    const storeType = getStoreType();
+    logger.info(`TSign Callback Dispatcher running at http://${host}:${port} [store=${storeType}]`);
+  });
+}
+
+bootstrap().catch((err) => {
+  logger.error(`Failed to start: ${err.message}`, { stack: err.stack });
+  process.exit(1);
 });
 
 export default app;

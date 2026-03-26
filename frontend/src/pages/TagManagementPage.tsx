@@ -226,7 +226,7 @@ const TagManagementPage: React.FC = () => {
       <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-800">标签管理</h2>
+            <h2 className="text-lg font-semibold text-gray-800">标签管理</h2>
             <p className="text-sm text-gray-500 mt-1">管理标签键定义，标签为 key-value 形式，用于回调配置中的消息过滤和分发</p>
           </div>
           <Button theme="primary" icon={<AddIcon />} onClick={handleAdd}>

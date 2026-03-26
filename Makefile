@@ -16,7 +16,12 @@ NAMESPACE    ?= pulse-line-prod
 IMAGE_BACKEND  = $(REGISTRY)/$(NAMESPACE)/tsign-dispatcher-backend
 IMAGE_FRONTEND = $(REGISTRY)/$(NAMESPACE)/tsign-dispatcher-frontend
 VERSION      ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "latest")
-PLATFORM     ?= linux/amd64
+# 自定义镜像 tag（可通过 make push TAG=v1.0.0 指定，默认同 VERSION）
+TAG          ?= $(VERSION)
+# 推送/部署目标架构（可改为 linux/amd64,linux/arm64 做多架构推送）
+PUSH_PLATFORM ?= linux/amd64
+# 本地构建：始终用本机架构，避免 QEMU 模拟导致 lfstack.push 崩溃
+LOCAL_PLATFORM = linux/$(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 
 COMPOSE_FILE = docker/docker-compose.yml
 COMPOSE_TEST = docker/test/docker-compose.test.yml
@@ -44,6 +49,7 @@ help: ## 显示帮助信息
 	@echo "  make build-backend     仅构建后端镜像"
 	@echo "  make build-frontend    仅构建前端镜像"
 	@echo "  make push              推送前后端镜像到仓库"
+	@echo "  make push TAG=v1.0.0   指定 tag 推送"
 	@echo "  make push-backend      仅推送后端镜像"
 	@echo "  make push-frontend     仅推送前端镜像"
 	@echo "  make tag               显示当前版本号"
@@ -83,20 +89,20 @@ help: ## 显示帮助信息
 build: build-backend build-frontend ## 构建前后端镜像
 	@echo "$(GREEN)✓ 所有镜像构建完成$(NC)"
 
-build-backend: ## 构建后端镜像
-	@echo "$(CYAN)→ 构建后端镜像: $(IMAGE_BACKEND):$(VERSION)$(NC)"
+build-backend: ## 构建后端镜像（本机架构）
+	@echo "$(CYAN)→ 构建后端镜像: $(IMAGE_BACKEND):$(VERSION) [$(LOCAL_PLATFORM)]$(NC)"
 	docker buildx build \
-		--platform $(PLATFORM) \
+		--platform $(LOCAL_PLATFORM) \
 		-f docker/Dockerfile.backend \
 		-t $(IMAGE_BACKEND):$(VERSION) \
 		-t $(IMAGE_BACKEND):latest \
 		--load \
 		.
 
-build-frontend: ## 构建前端镜像
-	@echo "$(CYAN)→ 构建前端镜像: $(IMAGE_FRONTEND):$(VERSION)$(NC)"
+build-frontend: ## 构建前端镜像（本机架构）
+	@echo "$(CYAN)→ 构建前端镜像: $(IMAGE_FRONTEND):$(VERSION) [$(LOCAL_PLATFORM)]$(NC)"
 	docker buildx build \
-		--platform $(PLATFORM) \
+		--platform $(LOCAL_PLATFORM) \
 		-f docker/Dockerfile.frontend \
 		-t $(IMAGE_FRONTEND):$(VERSION) \
 		-t $(IMAGE_FRONTEND):latest \
@@ -110,15 +116,25 @@ build-frontend: ## 构建前端镜像
 push: push-backend push-frontend ## 推送所有镜像
 	@echo "$(GREEN)✓ 所有镜像推送完成$(NC)"
 
-push-backend: ## 推送后端镜像
-	@echo "$(CYAN)→ 推送后端镜像$(NC)"
-	docker push $(IMAGE_BACKEND):$(VERSION)
-	docker push $(IMAGE_BACKEND):latest
+push-backend: ## 构建并推送后端镜像（目标架构）
+	@echo "$(CYAN)→ 构建并推送后端镜像 [$(PUSH_PLATFORM)] tag=$(TAG)$(NC)"
+	docker buildx build \
+		--platform $(PUSH_PLATFORM) \
+		-f docker/Dockerfile.backend \
+		-t $(IMAGE_BACKEND):$(TAG) \
+		-t $(IMAGE_BACKEND):latest \
+		--push \
+		.
 
-push-frontend: ## 推送前端镜像
-	@echo "$(CYAN)→ 推送前端镜像$(NC)"
-	docker push $(IMAGE_FRONTEND):$(VERSION)
-	docker push $(IMAGE_FRONTEND):latest
+push-frontend: ## 构建并推送前端镜像（目标架构）
+	@echo "$(CYAN)→ 构建并推送前端镜像 [$(PUSH_PLATFORM)] tag=$(TAG)$(NC)"
+	docker buildx build \
+		--platform $(PUSH_PLATFORM) \
+		-f docker/Dockerfile.frontend \
+		-t $(IMAGE_FRONTEND):$(TAG) \
+		-t $(IMAGE_FRONTEND):latest \
+		--push \
+		.
 
 tag: ## 显示当前版本号
 	@echo "$(VERSION)"
@@ -201,10 +217,12 @@ clean: ## 清理构建产物与悬空镜像
 info: ## 显示当前构建信息
 	@echo ""
 	@echo "$(CYAN)构建信息:$(NC)"
-	@echo "  Registry:  $(REGISTRY)"
-	@echo "  Namespace: $(NAMESPACE)"
-	@echo "  Version:   $(VERSION)"
-	@echo "  Platform:  $(PLATFORM)"
-	@echo "  Backend:   $(IMAGE_BACKEND):$(VERSION)"
-	@echo "  Frontend:  $(IMAGE_FRONTEND):$(VERSION)"
+	@echo "  Registry:       $(REGISTRY)"
+	@echo "  Namespace:      $(NAMESPACE)"
+	@echo "  Version:        $(VERSION)"
+	@echo "  Tag:            $(TAG)"
+	@echo "  Local Platform: $(LOCAL_PLATFORM)  (make build)"
+	@echo "  Push Platform:  $(PUSH_PLATFORM)   (make push)"
+	@echo "  Backend:        $(IMAGE_BACKEND):$(TAG)"
+	@echo "  Frontend:       $(IMAGE_FRONTEND):$(TAG)"
 	@echo ""
