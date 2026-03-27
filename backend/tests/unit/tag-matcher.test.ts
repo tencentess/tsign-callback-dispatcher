@@ -379,3 +379,208 @@ describe('shouldDispatch - 内置标签 + 自定义规则混合', () => {
     expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
   });
 });
+
+// ---- shouldDispatch - matchMode 前缀匹配测试 ----
+
+describe('shouldDispatch - matchMode 前缀匹配', () => {
+  // ── FlowType 前缀匹配 ──
+
+  it('FlowType 前缀匹配 - 消息值以配置值开头 → 放行', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order-001' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  it('FlowType 前缀匹配 - 消息值完全等于配置值 → 放行（前缀包含完全匹配）', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  it('FlowType 前缀匹配 - 消息值不以配置值开头 → 不分发', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'hr-contract' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  it('FlowType 前缀匹配 - 配置值是消息值的超集 → 不分发', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'pur' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  // ── UserData 前缀匹配 ──
+
+  it('UserData 前缀匹配 - 消息值以配置值开头 → 放行', async () => {
+    const msg = makeMessage('FlowStatusChange', { UserData: 'dept-finance-team-a' });
+    const tags: TagValue[] = [{ key: 'UserData', value: 'dept-finance', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  it('UserData 前缀匹配 - 不以配置值开头 → 不分发', async () => {
+    const msg = makeMessage('FlowStatusChange', { UserData: 'dept-hr-team-b' });
+    const tags: TagValue[] = [{ key: 'UserData', value: 'dept-finance', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  // ── exact 显式指定 ──
+
+  it('matchMode=exact 显式指定 - 与默认行为一致（精确匹配）', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'exact' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  it('matchMode=exact 显式指定 - 完全匹配 → 放行', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'exact' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  // ── 未指定 matchMode（默认 exact）──
+
+  it('matchMode 未指定 - 默认为 exact，不做前缀匹配', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  // ── 前缀匹配 + 字段缺失场景 ──
+
+  it('前缀匹配 + 字段不存在 - 默认策略 dispatch → 放行', async () => {
+    const msg = makeMessage('OperateSeal', { SealId: 'seal-001' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  it('前缀匹配 + 字段不存在 - 策略 discard → 不分发', async () => {
+    const msg = makeMessage('OperateSeal', { SealId: 'seal-001' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [], builtInTagMissPolicy: 'discard' })).toBe(false);
+  });
+
+  // ── 多标签混合 matchMode ──
+
+  it('FlowType 前缀匹配 + UserData 精确匹配 - 两者都通过 → 放行', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order-001', UserData: 'dept-finance' });
+    const tags: TagValue[] = [
+      { key: 'FlowType', value: 'purchase', matchMode: 'prefix' },
+      { key: 'UserData', value: 'dept-finance', matchMode: 'exact' },
+    ];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  it('FlowType 前缀匹配通过 + UserData 精确匹配不通过 → 不分发（AND 关系）', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order-001', UserData: 'dept-hr' });
+    const tags: TagValue[] = [
+      { key: 'FlowType', value: 'purchase', matchMode: 'prefix' },
+      { key: 'UserData', value: 'dept-finance', matchMode: 'exact' },
+    ];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  it('FlowType 精确匹配不通过 + UserData 前缀匹配通过 → 不分发（AND 关系）', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'hr-contract', UserData: 'dept-finance-team-a' });
+    const tags: TagValue[] = [
+      { key: 'FlowType', value: 'purchase', matchMode: 'exact' },
+      { key: 'UserData', value: 'dept-finance', matchMode: 'prefix' },
+    ];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  it('两个标签都用前缀匹配 - 都通过 → 放行', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order', UserData: 'dept-finance-team' });
+    const tags: TagValue[] = [
+      { key: 'FlowType', value: 'purchase', matchMode: 'prefix' },
+      { key: 'UserData', value: 'dept-finance', matchMode: 'prefix' },
+    ];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  it('两个标签都用前缀匹配 - 一个不通过 → 不分发', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order', UserData: 'dept-hr-team' });
+    const tags: TagValue[] = [
+      { key: 'FlowType', value: 'purchase', matchMode: 'prefix' },
+      { key: 'UserData', value: 'dept-finance', matchMode: 'prefix' },
+    ];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  // ── 前缀匹配 + 空值配置 ──
+
+  it('前缀匹配 + 空值配置 - 不检查值，字段存在即放行', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'any-type' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: '', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  // ── 前缀匹配 + msgTypes 组合 ──
+
+  it('前缀匹配 + msgTypes 过滤 - 事件类型匹配且前缀匹配 → 放行', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order-123' });
+    expect(await shouldDispatch(msg, {
+      tags: [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }],
+      matchRules: [],
+      msgTypes: ['FlowStatusChange'],
+    })).toBe(true);
+  });
+
+  it('前缀匹配 + msgTypes 过滤 - 事件类型不匹配 → 不分发（不走标签判断）', async () => {
+    const msg = makeMessage('FlowCost', { FlowType: 'purchase-order-123' });
+    expect(await shouldDispatch(msg, {
+      tags: [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }],
+      matchRules: [],
+      msgTypes: ['FlowStatusChange'],
+    })).toBe(false);
+  });
+
+  // ── 前缀匹配 + 自定义规则混合 ──
+
+  it('前缀匹配内置标签通过 + 自定义规则通过 → 放行', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'purchase-order', FlowName: '采购合同' });
+    const tags: TagValue[] = [
+      { key: 'FlowType', value: 'purchase', matchMode: 'prefix' },
+      { key: 'env', value: 'prod' },
+    ];
+    const matchRules: TagMatchRule[] = [{
+      id: 'r1', name: 'test', field: 'MsgData.FlowName', operator: 'contains',
+      value: '采购', tags: ['env'], enabled: true,
+    }];
+    expect(await shouldDispatch(msg, { tags, matchRules })).toBe(true);
+  });
+
+  it('前缀匹配内置标签不通过 + 自定义规则通过 → 不分发', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'hr-contract', FlowName: '采购合同' });
+    const tags: TagValue[] = [
+      { key: 'FlowType', value: 'purchase', matchMode: 'prefix' },
+      { key: 'env', value: 'prod' },
+    ];
+    const matchRules: TagMatchRule[] = [{
+      id: 'r1', name: 'test', field: 'MsgData.FlowName', operator: 'contains',
+      value: '采购', tags: ['env'], enabled: true,
+    }];
+    expect(await shouldDispatch(msg, { tags, matchRules })).toBe(false);
+  });
+
+  // ── 边界场景 ──
+
+  it('前缀匹配 - 空前缀匹配任何非空值', async () => {
+    // value='' 时 configTag.value 为空字符串，不进入值比较分支，直接通过
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'anything' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: '', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+
+  it('前缀匹配 - 大小写敏感（精确匹配前缀大小写）', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'Purchase-Order' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'purchase', matchMode: 'prefix' }];
+    // startsWith 是大小写敏感的
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(false);
+  });
+
+  it('前缀匹配 - 大小写完全一致则通过', async () => {
+    const msg = makeMessage('FlowStatusChange', { FlowType: 'Purchase-Order' });
+    const tags: TagValue[] = [{ key: 'FlowType', value: 'Purchase', matchMode: 'prefix' }];
+    expect(await shouldDispatch(msg, { tags, matchRules: [] })).toBe(true);
+  });
+});

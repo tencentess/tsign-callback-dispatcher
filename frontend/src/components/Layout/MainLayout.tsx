@@ -10,10 +10,12 @@ import {
   UserCircleIcon,
   LogoutIcon,
   LockOnIcon,
+  DashboardIcon,
 } from 'tdesign-icons-react';
 import { getUsername, clearAuth } from '../../lib/auth';
 import { changePassword } from '../../lib/api';
 import logoSvg from '../../assets/img/bigger-dzq.svg';
+import ParticleBackground from '../ParticleBackground';
 
 const { MenuItem } = Menu;
 const { FormItem } = Form;
@@ -21,6 +23,7 @@ const { FormItem } = Form;
 const menuItems = [
   { path: '/', label: '回调配置', icon: <LinkIcon /> },
   { path: '/tags', label: '标签管理', icon: <TagIcon /> },
+  { path: '/dispatch-history', label: '分发记录', icon: <DashboardIcon /> },
   { path: '/settings', label: '系统设置', icon: <SettingIcon /> },
 ];
 
@@ -54,7 +57,6 @@ const MainLayout: React.FC = () => {
       await changePassword(oldPassword, newPassword);
       MessagePlugin.success('密码修改成功，请重新登录');
       setPasswordDialogVisible(false);
-      // 强制登出：清除 token 并跳转到登录页
       clearAuth();
       navigate('/login', { replace: true });
     } catch (err: unknown) {
@@ -80,15 +82,47 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#f0f2f5] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'linear-gradient(135deg, #0b1120 0%, #0f172a 40%, #0c1a2e 100%)' }}>
+      {/* Ambient glow effects */}
+      <div
+        className="fixed w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 70%)',
+          top: '-15%',
+          right: '-10%',
+          zIndex: 0,
+        }}
+      />
+      <div
+        className="fixed w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle, rgba(13,148,136,0.05) 0%, transparent 70%)',
+          bottom: '-10%',
+          left: '10%',
+          zIndex: 0,
+        }}
+      />
+
+      {/* Particle Animation Background */}
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+        <ParticleBackground />
+      </div>
+
       {/* Sidebar */}
       <div
         className={`${
           collapsed ? 'w-[64px]' : 'w-[240px]'
-        } bg-white shadow-lg flex flex-col transition-all duration-300 ease-in-out flex-shrink-0`}
+        } flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 relative z-10`}
+        style={{
+          background: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(16px)',
+          borderRight: '1px solid rgba(56, 189, 248, 0.08)',
+        }}
       >
         {/* Logo */}
-        <div className={`${collapsed ? 'h-[64px] flex items-center justify-center' : 'h-[64px] flex items-center'} border-b border-gray-100 px-4 overflow-hidden`}>
+        <div className={`${collapsed ? 'h-[64px] flex items-center justify-center' : 'h-[64px] flex items-center'} px-4 overflow-hidden`}
+          style={{ borderBottom: '1px solid rgba(56, 189, 248, 0.08)' }}
+        >
           {!collapsed ? (
             <div className="flex items-center gap-2">
               <img src={logoSvg} alt="logo" className="h-7 flex-shrink-0" />
@@ -101,26 +135,56 @@ const MainLayout: React.FC = () => {
         </div>
 
         {/* Menu */}
-        <div className="flex-1 py-2">
-          <Menu
-            value={currentPath}
-            collapsed={collapsed}
-            onChange={(value) => navigate(value as string)}
-            style={{ border: 'none' }}
-          >
-            {menuItems.map((item) => (
-              <MenuItem key={item.path} value={item.path} icon={item.icon}>
-                {item.label}
-              </MenuItem>
-            ))}
-          </Menu>
+        <div className="flex-1 py-3 px-2">
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const isActive = currentPath === item.path;
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 cursor-pointer ${
+                    collapsed ? 'justify-center' : ''
+                  } ${
+                    isActive
+                      ? 'text-sky-300 font-medium'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          background: 'rgba(56, 189, 248, 0.1)',
+                          boxShadow: 'inset 0 0 0 1px rgba(56, 189, 248, 0.15)',
+                        }
+                      : { background: 'transparent' }
+                  }
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    }
+                  }}
+                >
+                  <span className="text-lg flex-shrink-0">{item.icon}</span>
+                  {!collapsed && <span>{item.label}</span>}
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
         {/* Collapse Toggle */}
-        <div className="border-t border-gray-100 p-3">
+        <div className="p-3" style={{ borderTop: '1px solid rgba(56, 189, 248, 0.08)' }}>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-50 text-gray-500 transition-colors cursor-pointer"
+            aria-label={collapsed ? '展开侧边栏' : '折叠侧边栏'}
+            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors cursor-pointer"
           >
             {collapsed ? <MenuUnfoldIcon size={18} /> : <MenuFoldIcon size={18} />}
           </button>
@@ -128,21 +192,29 @@ const MainLayout: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         {/* Header */}
-        <header className="h-[64px] bg-white shadow-sm flex items-center justify-between px-6 flex-shrink-0">
+        <header
+          className="h-[64px] flex items-center justify-between px-6 flex-shrink-0"
+          style={{
+            background: 'rgba(15, 23, 42, 0.5)',
+            backdropFilter: 'blur(16px)',
+            borderBottom: '1px solid rgba(56, 189, 248, 0.08)',
+          }}
+        >
           <div>
-            <h1 className="text-lg font-semibold text-gray-800">
+            <h1 className="text-lg font-semibold text-slate-100 tracking-tight">
               {menuItems.find((m) => m.path === currentPath)?.label || '电子签回调分发'}
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span>服务运行中</span>
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 tech-pulse" />
+              <span className="font-mono text-xs">ONLINE</span>
             </div>
+            <div className="w-px h-5 bg-white/10" />
             <Dropdown options={dropdownOptions} onClick={handleDropdownClick}>
-              <Button variant="text" shape="round" icon={<UserCircleIcon />}>
+              <Button variant="text" shape="round" icon={<UserCircleIcon />} style={{ color: '#94a3b8' }}>
                 {username}
               </Button>
             </Dropdown>
@@ -150,7 +222,7 @@ const MainLayout: React.FC = () => {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 tech-grid-bg animate-fade-slide-in">
           <Outlet />
         </main>
       </div>
@@ -184,7 +256,6 @@ const MainLayout: React.FC = () => {
               { required: true, message: '请确认新密码' },
               {
                 validator: (val: string) => {
-                  // Will be validated in submit handler
                   return true;
                 },
               },

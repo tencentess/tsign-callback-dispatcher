@@ -155,9 +155,19 @@ function passesBuiltInTags(
       continue;
     }
 
-    if (configTag.value && String(msgValue) !== configTag.value) {
-      logger.debug(`Built-in tag "${configTag.key}" value mismatch: expected="${configTag.value}", got="${msgValue}"`);
-      return false;
+    if (configTag.value) {
+      const strMsgValue = String(msgValue);
+      const matchMode = configTag.matchMode || 'exact';
+      const isMatch = matchMode === 'prefix'
+        ? strMsgValue.startsWith(configTag.value)
+        : strMsgValue === configTag.value;
+
+      if (!isMatch) {
+        logger.debug(
+          `Built-in tag "${configTag.key}" value mismatch (${matchMode}): expected="${configTag.value}", got="${msgValue}"`
+        );
+        return false;
+      }
     }
 
     logger.debug(`Built-in tag "${configTag.key}" matched: value="${msgValue}"`);

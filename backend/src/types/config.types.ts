@@ -1,8 +1,11 @@
 import { CallbackMsgType } from './callback.types';
 
+export type TagMatchMode = 'exact' | 'prefix';
+
 export interface TagValue {
   key: string;
   value: string;
+  matchMode?: TagMatchMode;
 }
 
 export type AppType = 'company' | 'partner';
@@ -95,6 +98,7 @@ export interface DispatchResult {
   success: boolean;
   statusCode?: number;
   error?: string;
+  errorType?: 'timeout' | 'dns' | 'connection_refused' | 'connection_reset' | 'server_error' | 'client_error' | 'network' | 'unknown';
   retryCount: number;
   timestamp: number;
   duration: number;

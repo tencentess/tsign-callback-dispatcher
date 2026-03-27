@@ -8,7 +8,7 @@ import { requestLogger } from './middleware/logger.middleware';
 import { authRequired } from './middleware/auth.middleware';
 import { asyncHandler } from './middleware/async-handler';
 import { validateCallbackBody, validateTagBody } from './middleware/validator.middleware';
-import { handleCallback, getReceivedCallbacks, clearReceivedCallbacks } from './controllers/callback.controller';
+import { handleCallback, getReceivedCallbacks, clearReceivedCallbacks, getDispatchHistory, getDispatchStatsApi } from './controllers/callback.controller';
 import * as configCtrl from './controllers/config.controller';
 import * as authCtrl from './controllers/auth.controller';
 import { healthCheck, systemStatus } from './controllers/health.controller';
@@ -95,6 +95,10 @@ app.put('/api/auth/password', asyncHandler(authCtrl.updatePassword));
 
 app.get('/api/received-callbacks', authRequired, getReceivedCallbacks);
 app.delete('/api/received-callbacks', authRequired, clearReceivedCallbacks);
+
+// Dispatch history & stats
+app.get('/api/dispatch-history', authRequired, getDispatchHistory);
+app.get('/api/dispatch-stats', authRequired, getDispatchStatsApi);
 
 // Callback config CRUD
 app.get('/api/callbacks/generate-keys', authRequired, configCtrl.generateKeys);

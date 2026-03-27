@@ -241,11 +241,11 @@ const LoginPage: React.FC = () => {
           {/* Welcome text */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">欢迎回来</h2>
-            <p className="text-sm text-gray-400 mt-2">请登录管理账号以继续操作</p>
+            <p className="text-sm text-gray-500 mt-2">请登录管理账号以继续操作</p>
           </div>
 
           {/* Login Card */}
-          <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 p-8 border border-gray-100/80">
+          <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 p-8 border border-gray-100/80 login-card-light">
             <Form onSubmit={handleSubmit} colon labelWidth={0}>
               <div className="mb-1">
                 <label className="text-sm font-medium text-gray-600 mb-1.5 block">用户名</label>
@@ -253,9 +253,10 @@ const LoginPage: React.FC = () => {
               <FormItem name="username" rules={[{ required: true, message: '请输入用户名' }]}>
                 <Input
                   prefixIcon={<UserIcon />}
-                  placeholder="请输入用户名"
+                  placeholder="请输入管理员用户名"
                   size="large"
                   clearable
+                  aria-label="用户名"
                 />
               </FormItem>
               <div className="mb-1 mt-2">
@@ -264,9 +265,10 @@ const LoginPage: React.FC = () => {
               <FormItem name="password" rules={[{ required: true, message: '请输入密码' }]}>
                 <Input
                   prefixIcon={<LockOnIcon />}
-                  placeholder="请输入密码"
+                  placeholder="请输入登录密码"
                   type="password"
                   size="large"
+                  aria-label="密码"
                 />
               </FormItem>
               <FormItem>
@@ -282,6 +284,8 @@ const LoginPage: React.FC = () => {
                     fontSize: '15px',
                     background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0d9488 100%)',
                     border: 'none',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 2px 12px rgba(13, 148, 136, 0.2)',
                   }}
                 >
                   登 录

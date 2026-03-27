@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import CallbackManagementPage from './pages/CallbackManagementPage';
 import TagManagementPage from './pages/TagManagementPage';
+import DispatchHistoryPage from './pages/DispatchHistoryPage';
 import SettingsPage from './pages/SettingsPage';
 
 const App: React.FC = () => {
@@ -22,6 +23,7 @@ const App: React.FC = () => {
         <Route index element={<CallbackManagementPage />} />
         <Route path="callbacks" element={<CallbackManagementPage />} />
         <Route path="tags" element={<TagManagementPage />} />
+        <Route path="dispatch-history" element={<DispatchHistoryPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

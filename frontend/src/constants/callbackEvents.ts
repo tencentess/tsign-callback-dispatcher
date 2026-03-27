@@ -7,6 +7,7 @@ export interface CallbackEventItem {
 
 export interface CallbackEventCategory {
   category: string;
+  docUrl?: string;
   events: CallbackEventItem[];
 }
 
@@ -14,6 +15,7 @@ export interface CallbackEventCategory {
 const COMPANY_EVENTS: CallbackEventCategory[] = [
   {
     category: '合同相关回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_contracts_sign',
     events: [
       { label: '合同状态变动通知', value: 'FlowStatusChange' },
       { label: '合同发起扣费通知（已废弃）', value: 'FlowCost' },
@@ -29,6 +31,7 @@ const COMPANY_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '印章相关回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_seals',
     events: [
       { label: '印章操作回调通知', value: 'OperateSeal' },
       { label: '员工执业章回调通知', value: 'EmployeeSealAuth' },
@@ -37,6 +40,7 @@ const COMPANY_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '模板相关回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_templates',
     events: [
       { label: '创建模板通知', value: 'TemplateAdd' },
       { label: '编辑模板通知', value: 'TemplateUpdate' },
@@ -46,8 +50,8 @@ const COMPANY_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '企业员工相关回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_staffs',
     events: [
-      { label: '员工认证成功回调通知', value: 'VerifyStaffInfo' },
       { label: '员工变更角色回调通知', value: 'RolesChange' },
       { label: '审批员工加入成功回调通知', value: 'ApproveEmployeeJoin' },
       { label: '员工离职回调通知', value: 'QuiteJob' },
@@ -69,6 +73,7 @@ const COMPANY_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '其他功能回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_commons',
     events: [
       { label: '一码多签发起合同失败通知', value: 'CreateFlowByQrCode' },
       { label: '一码多签发起合同消费通知', value: 'MultiFlowSignQrCodeCost' },
@@ -77,12 +82,14 @@ const COMPANY_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '费用相关回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_billing',
     events: [
       { label: '扣费回调通知', value: 'BillingUse' },
     ],
   },
   {
     category: '个人医疗自动签回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_userautosign',
     events: [
       { label: '开通医疗自动签回调通知', value: 'OpenUserAutoSign' },
       { label: '创建自动签署印章签名回调', value: 'AutoSignSealImg' },
@@ -92,6 +99,7 @@ const COMPANY_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '合同智能相关回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_riskident_lm',
     events: [
       { label: '合同风险审查回调通知', value: 'AIContractReview' },
       { label: '合同智能提取回调通知', value: 'AIInformationExtraction' },
@@ -99,6 +107,7 @@ const COMPANY_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '合同对比相关回调',
+    docUrl: 'https://qian.tencent.com/developers/company/callback_types_contractdiff',
     events: [
       { label: '合同对比完成回调', value: 'ContractDiffTaskFinish' },
       { label: '合同对比创建回调', value: 'ContractDiffTaskCreate' },
@@ -110,6 +119,7 @@ const COMPANY_EVENTS: CallbackEventCategory[] = [
 const PARTNER_EVENTS: CallbackEventCategory[] = [
   {
     category: '合同相关回调',
+    docUrl: 'https://qian.tencent.com/developers/partner/callback_types_contracts_sign',
     events: [
       { label: '合同状态变动通知', value: 'FlowStatusChange' },
       { label: '合同发起扣费通知（已废弃）', value: 'FlowCost' },
@@ -124,6 +134,7 @@ const PARTNER_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '印章相关回调',
+    docUrl: 'https://qian.tencent.com/developers/partner/callback_types_seals',
     events: [
       { label: '印章操作回调通知', value: 'OperateSeal' },
       { label: '印章审核结果通知', value: 'AuditSealAuth' },
@@ -133,6 +144,7 @@ const PARTNER_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '模板相关回调',
+    docUrl: 'https://qian.tencent.com/developers/partner/callback_types_templates',
     events: [
       { label: '模板新增通知', value: 'TemplateAdd' },
       { label: '模板修改通知', value: 'TemplateUpdate' },
@@ -142,6 +154,7 @@ const PARTNER_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '企业员工相关回调',
+    docUrl: 'https://qian.tencent.com/developers/partner/callback_types_staffs',
     events: [
       { label: '平台企业授权电子签通知', value: 'OrgAuth' },
       { label: '认证流创建/失效回调', value: 'OrganizationAuthorization' },
@@ -165,6 +178,7 @@ const PARTNER_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '其他功能回调',
+    docUrl: 'https://qian.tencent.com/developers/partner/callback_types_commons',
     events: [
       { label: '签署二维码发起合同失败通知', value: 'CreateFlowByQrCode' },
       { label: '签署二维码发起合同消费通知', value: 'MultiFlowSignQrCodeCost' },
@@ -173,12 +187,14 @@ const PARTNER_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '费用相关回调',
+    docUrl: 'https://qian.tencent.com/developers/partner/callback_types_billing',
     events: [
       { label: '扣费回调通知', value: 'BillingUse' },
     ],
   },
   {
     category: '个人医疗自动签回调',
+    docUrl: 'https://qian.tencent.com/developers/partner/callback_types_userautosign',
     events: [
       { label: '开通医疗自动签回调通知', value: 'OpenUserAutoSign' },
       { label: '创建自动签署印章签名回调', value: 'AutoSignSealImg' },
@@ -188,6 +204,7 @@ const PARTNER_EVENTS: CallbackEventCategory[] = [
   },
   {
     category: '合同智能相关回调',
+    docUrl: 'https://qian.tencent.com/developers/partner/callback_types_riskident',
     events: [
       { label: '合同风险审查完成回调通知', value: 'FlowRiskIdentify' },
     ],

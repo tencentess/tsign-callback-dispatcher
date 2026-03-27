@@ -59,11 +59,15 @@ const TagRuleEditor: React.FC<TagRuleEditorProps> = ({ rules, onChange, availabl
       {rules.map((rule, index) => (
         <div
           key={rule.id}
-          className="bg-gray-50 rounded-lg p-4 border border-gray-100 space-y-3"
+          className="rounded-lg p-4 space-y-3"
+          style={{
+            background: 'rgba(15, 23, 42, 0.5)',
+            border: '1px solid rgba(56, 189, 248, 0.1)',
+          }}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">规则 {index + 1}</span>
+              <span className="text-xs font-medium text-slate-400">规则 {index + 1}</span>
               <Switch
                 size="small"
                 value={rule.enabled}
@@ -72,7 +76,7 @@ const TagRuleEditor: React.FC<TagRuleEditorProps> = ({ rules, onChange, availabl
             </div>
             <button
               onClick={() => removeRule(index)}
-              className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 cursor-pointer transition-colors"
+              className="p-1 rounded hover:bg-red-500/10 text-slate-500 hover:text-red-400 cursor-pointer transition-colors"
             >
               <DeleteIcon size={14} />
             </button>
@@ -80,7 +84,7 @@ const TagRuleEditor: React.FC<TagRuleEditorProps> = ({ rules, onChange, availabl
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">规则名称</label>
+              <label className="block text-xs text-slate-500 mb-1">规则名称</label>
               <Input
                 size="small"
                 value={rule.name}
@@ -89,7 +93,7 @@ const TagRuleEditor: React.FC<TagRuleEditorProps> = ({ rules, onChange, availabl
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">匹配字段</label>
+              <label className="block text-xs text-slate-500 mb-1">匹配字段</label>
               <Select
                 size="small"
                 value={rule.field}
@@ -104,7 +108,7 @@ const TagRuleEditor: React.FC<TagRuleEditorProps> = ({ rules, onChange, availabl
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">匹配方式</label>
+              <label className="block text-xs text-slate-500 mb-1">匹配方式</label>
               <Select
                 size="small"
                 value={rule.operator}
@@ -114,7 +118,7 @@ const TagRuleEditor: React.FC<TagRuleEditorProps> = ({ rules, onChange, availabl
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">匹配值</label>
+              <label className="block text-xs text-slate-500 mb-1">匹配值</label>
               {rule.operator === 'exists' ? (
                 <Input size="small" disabled placeholder="字段存在即匹配" />
               ) : (
@@ -136,7 +140,7 @@ const TagRuleEditor: React.FC<TagRuleEditorProps> = ({ rules, onChange, availabl
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">匹配后分配标签</label>
+            <label className="block text-xs text-slate-500 mb-1">匹配后分配标签</label>
             <Select
               size="small"
               value={rule.tags}

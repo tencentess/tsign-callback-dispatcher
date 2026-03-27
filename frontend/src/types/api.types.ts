@@ -49,9 +49,12 @@ export interface TagDefinition {
   updatedAt: string;
 }
 
+export type TagMatchMode = 'exact' | 'prefix';
+
 export interface TagValue {
   key: string;
   value: string;
+  matchMode?: TagMatchMode;
 }
 
 export interface DispatchResult {
@@ -61,9 +64,43 @@ export interface DispatchResult {
   success: boolean;
   statusCode?: number;
   error?: string;
+  errorType?: 'timeout' | 'dns' | 'connection_refused' | 'connection_reset' | 'server_error' | 'client_error' | 'network' | 'unknown';
   retryCount: number;
   timestamp: number;
   duration: number;
+}
+
+/** 分发记录（对应后端 DispatchRecord） */
+export interface DispatchRecord {
+  id: string;
+  msgId: string;
+  msgType: string;
+  receivedAt: string;
+  totalTargets: number;
+  matchedTargets: number;
+  successCount: number;
+  failCount: number;
+  error?: string;
+  results: Array<{
+    configId: string;
+    configName: string;
+    url: string;
+    success: boolean;
+    statusCode?: number;
+    error?: string;
+    errorType?: string;
+    retryCount: number;
+    duration?: number;
+  }>;
+}
+
+/** 分发统计摘要 */
+export interface DispatchStats {
+  totalDispatched: number;
+  totalSuccess: number;
+  totalFailed: number;
+  recentFailures: DispatchRecord[];
+  bufferUsage: { used: number; capacity: number };
 }
 
 export interface OperationLog {

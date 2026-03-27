@@ -47,7 +47,7 @@ services:
     networks:
       - test-net
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.:3001/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3001/api/health"]
       interval: 5s
       timeout: 3s
       retries: 10

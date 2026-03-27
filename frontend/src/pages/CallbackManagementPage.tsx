@@ -6,9 +6,10 @@ import {
 import {
   AddIcon, EditIcon, DeleteIcon, CheckCircleIcon, CloseCircleIcon,
   InfoCircleIcon, AddCircleIcon, CloseIcon, ChevronDownIcon, ChevronRightIcon,
+  JumpIcon,
 } from 'tdesign-icons-react';
 import { fetchCallbacks, createCallback, updateCallback, deleteCallback, fetchTags, generateKeys } from '../lib/api';
-import { DispatchConfig, TagDefinition, TagValue, TagMatchRule, AppType, UnknownMsgTypePolicy, BuiltInTagMissPolicy } from '../types/api.types';
+import { DispatchConfig, TagDefinition, TagValue, TagMatchRule, TagMatchMode, AppType, UnknownMsgTypePolicy, BuiltInTagMissPolicy } from '../types/api.types';
 import { getEventCategories, getAllEventValues, getEventLabel, CallbackEventCategory } from '../constants/callbackEvents';
 import TagRuleEditor from '../components/TagManager/TagRuleEditor';
 
@@ -78,17 +79,30 @@ const EventCategoryPicker: React.FC<{
   }, [categories, selectedSet]);
 
   return (
-    <div className="border border-gray-200 rounded-lg max-h-[320px] overflow-y-auto">
+    <div
+      className="rounded-lg max-h-[320px] overflow-y-auto"
+      style={{
+        border: '1px solid rgba(56, 189, 248, 0.1)',
+        background: 'rgba(15, 23, 42, 0.4)',
+      }}
+    >
       {/* 全选 */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+      <div
+        className="flex items-center gap-2 px-3 py-2 sticky top-0 z-10"
+        style={{
+          background: 'rgba(15, 23, 42, 0.98)',
+          borderBottom: '1px solid rgba(56, 189, 248, 0.08)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
         <Checkbox
           checked={isAllSelected}
           indeterminate={isPartialAll}
           onChange={handleSelectAll}
         />
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-slate-300">
           全选所有事件
-          <span className="text-gray-400 ml-1">({selectedSet.size}/{allValues.length})</span>
+          <span className="text-slate-500 ml-1">({selectedSet.size}/{allValues.length})</span>
         </span>
       </div>
       {/* 分类列表 */}
@@ -98,13 +112,16 @@ const EventCategoryPicker: React.FC<{
         return (
           <div key={cat.category}>
             <div
-              className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-gray-50 cursor-pointer border-b border-gray-100"
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
               onClick={() => toggleCat(cat.category)}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(56,189,248,0.06)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               {expanded ? (
-                <ChevronDownIcon style={{ fontSize: 14, color: '#999' }} />
+                <ChevronDownIcon style={{ fontSize: 14, color: '#64748b' }} />
               ) : (
-                <ChevronRightIcon style={{ fontSize: 14, color: '#999' }} />
+                <ChevronRightIcon style={{ fontSize: 14, color: '#64748b' }} />
               )}
               <Checkbox
                 checked={catAllSelected}
@@ -112,23 +129,36 @@ const EventCategoryPicker: React.FC<{
                 onChange={(checked) => { handleCatToggle(cat, checked as boolean); }}
                 onClick={({ e }) => e.stopPropagation()}
               />
-              <span className="text-sm font-medium text-gray-600">
+              <span className="text-sm font-medium text-slate-400">
                 {cat.category}
-                <span className="text-gray-400 ml-1">
+                <span className="text-slate-500 ml-1">
                   ({catCounts[cat.category] || 0}/{cat.events.length})
                 </span>
               </span>
+              {cat.docUrl && (
+                <a
+                  href={cat.docUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ml-auto mr-1 flex items-center gap-1 text-xs text-sky-400/70 hover:text-sky-300 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                  title="查看官方文档"
+                >
+                  <JumpIcon style={{ fontSize: 13 }} />
+                  <span>文档</span>
+                </a>
+              )}
             </div>
             {expanded && (
-              <div className="pl-12 pr-3 py-1 space-y-1 bg-white">
+              <div className="pl-12 pr-3 py-1 space-y-1" style={{ background: 'rgba(15, 23, 42, 0.3)' }}>
                 {cat.events.map((evt) => (
                   <div key={evt.value} className="flex items-center gap-2 py-0.5">
                     <Checkbox
                       checked={selectedSet.has(evt.value)}
                       onChange={(checked) => handleEventToggle(evt.value, checked as boolean)}
                     />
-                    <span className="text-sm text-gray-600">{evt.label}</span>
-                    <span className="text-xs text-gray-400 ml-auto font-mono">{evt.value}</span>
+                    <span className="text-sm text-slate-400">{evt.label}</span>
+                    <span className="text-xs text-slate-600 ml-auto font-mono">{evt.value}</span>
                   </div>
                 ))}
               </div>
@@ -242,14 +272,14 @@ const CallbackManagementPage: React.FC = () => {
   };
 
   const handleAddTagRow = () => {
-    setTagRows((prev) => [...prev, { key: '', value: '' }]);
+    setTagRows((prev) => [...prev, { key: '', value: '', matchMode: 'exact' as TagMatchMode }]);
   };
 
   const handleRemoveTagRow = (index: number) => {
     setTagRows((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleTagRowChange = (index: number, field: 'key' | 'value', value: string) => {
+  const handleTagRowChange = (index: number, field: 'key' | 'value' | 'matchMode', value: string) => {
     setTagRows((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
@@ -280,8 +310,8 @@ const CallbackManagementPage: React.FC = () => {
       width: 180,
       cell: ({ row }: { row: DispatchConfig }) => (
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${row.enabled ? 'bg-green-400' : 'bg-gray-300'}`} />
-          <span className="font-medium">{row.name}</span>
+          <div className={`w-2 h-2 rounded-full ${row.enabled ? 'bg-emerald-400 tech-pulse' : 'bg-slate-600'}`} />
+          <span className="font-medium text-slate-200">{row.name}</span>
         </div>
       ),
     },
@@ -299,7 +329,9 @@ const CallbackManagementPage: React.FC = () => {
       colKey: 'url',
       title: '回调地址',
       ellipsis: true,
-      cell: ({ row }: { row: DispatchConfig }) => <span className="text-gray-600 text-sm">{row.url}</span>,
+      cell: ({ row }: { row: DispatchConfig }) => (
+        <span className="text-slate-400 text-sm font-mono">{row.url}</span>
+      ),
     },
     {
       colKey: 'msgTypes',
@@ -315,7 +347,7 @@ const CallbackManagementPage: React.FC = () => {
                 return <Tag key={t} size="small" variant="light" theme="primary">{lbl || t}</Tag>;
               })
             ) : (
-              <span className="text-gray-400 text-xs">全部事件</span>
+              <span className="text-slate-500 text-xs">全部事件</span>
             )}
             {(row.msgTypes?.length ?? 0) > 3 && <Tag size="small" variant="light">+{row.msgTypes!.length - 3}</Tag>}
           </div>
@@ -331,14 +363,17 @@ const CallbackManagementPage: React.FC = () => {
           {row.tags?.length ? (
             row.tags.map((t: TagValue, i: number) => {
               const tagDef = tags.find((td) => td.key === t.key);
+              const isPrefix = t.matchMode === 'prefix';
               return (
-                <Tag key={i} size="small" variant="light" style={tagDef ? { color: tagDef.color, borderColor: tagDef.color } : {}}>
-                  {tagDef?.name || t.key}: {t.value}
-                </Tag>
+                <Tooltip key={i} content={isPrefix ? `前缀匹配: ${t.value}*` : `完全匹配: ${t.value}`}>
+                  <Tag size="small" variant="light" style={tagDef ? { color: tagDef.color, borderColor: `${tagDef.color}30` } : {}}>
+                    {tagDef?.name || t.key}: {t.value}{isPrefix ? '*' : ''}
+                  </Tag>
+                </Tooltip>
               );
             })
           ) : (
-            <span className="text-gray-400 text-xs">无标签</span>
+            <span className="text-slate-500 text-xs">无标签</span>
           )}
         </div>
       ),
@@ -358,13 +393,17 @@ const CallbackManagementPage: React.FC = () => {
       title: '备注',
       width: 150,
       ellipsis: true,
-      cell: ({ row }: { row: DispatchConfig }) => <span className="text-gray-500 text-sm">{row.remark || '-'}</span>,
+      cell: ({ row }: { row: DispatchConfig }) => <span className="text-slate-400 text-sm">{row.remark || '-'}</span>,
     },
     {
       colKey: 'updatedAt',
       title: '更新时间',
       width: 180,
-      cell: ({ row }: { row: DispatchConfig }) => row.updatedAt ? new Date(row.updatedAt).toLocaleString('zh-CN') : '-',
+      cell: ({ row }: { row: DispatchConfig }) => (
+        <span className="font-mono text-xs text-slate-400">
+          {row.updatedAt ? new Date(row.updatedAt).toLocaleString('zh-CN') : '-'}
+        </span>
+      ),
     },
     {
       colKey: 'actions',
@@ -379,7 +418,7 @@ const CallbackManagementPage: React.FC = () => {
           <Button theme="primary" variant="text" size="small" icon={<EditIcon />} onClick={() => handleEdit(row)}>
             编辑
           </Button>
-          <Popconfirm content="确定要删除此回调配置吗？" onConfirm={() => handleDelete(row.id)}>
+          <Popconfirm content={`确定要删除「${row.name}」回调配置吗？此操作不可恢复。`} onConfirm={() => handleDelete(row.id)}>
             <Button theme="danger" variant="text" size="small" icon={<DeleteIcon />}>
               删除
             </Button>
@@ -390,29 +429,45 @@ const CallbackManagementPage: React.FC = () => {
   ];
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full"><Loading /></div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3">
+        <Loading />
+        <span className="text-sm text-slate-500">正在加载配置数据...</span>
+      </div>
+    );
   }
 
-  const labelStyle = 'w-32 text-right text-sm text-gray-600 flex-shrink-0 pt-2';
+  const labelStyle = 'w-32 text-right text-sm text-slate-400 flex-shrink-0 pt-2';
   const rowStyle = 'flex items-start gap-4';
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50">
+      <div className="tech-card p-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">回调地址配置</h2>
-            <p className="text-sm text-gray-500 mt-1">管理消息分发的目标地址，支持按标签和消息类型进行精准分发</p>
+            <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+              <span className="w-1 h-4 rounded-full bg-sky-400 inline-block" />
+              回调地址配置
+            </h2>
+            <p className="text-sm text-slate-400 mt-1.5 ml-3">管理消息分发的目标地址，支持按标签和消息类型进行精准分发</p>
           </div>
-          <Button theme="primary" icon={<AddIcon />} onClick={handleAdd}>
+          <Button
+            theme="primary"
+            icon={<AddIcon />}
+            onClick={handleAdd}
+            style={{
+              background: 'linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(13,148,136,0.9) 100%)',
+              border: 'none',
+            }}
+          >
             新增配置
           </Button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-50">
+      <div className="tech-card">
         <Table
           data={callbacks}
           columns={columns}
@@ -442,7 +497,7 @@ const CallbackManagementPage: React.FC = () => {
           {/* 配置名称 */}
           <div className={rowStyle}>
             <label className={labelStyle}>
-              <span className="text-red-500 mr-1">*</span>配置名称
+              <span className="text-red-400 mr-1">*</span>配置名称
             </label>
             <div className="flex-1">
               <Input
@@ -456,7 +511,7 @@ const CallbackManagementPage: React.FC = () => {
           {/* 应用类型 */}
           <div className={rowStyle}>
             <label className={labelStyle}>
-              <span className="text-red-500 mr-1">*</span>应用类型
+              <span className="text-red-400 mr-1">*</span>应用类型
             </label>
             <div className="flex-1 pt-1">
               <Radio.Group
@@ -472,9 +527,9 @@ const CallbackManagementPage: React.FC = () => {
           {/* 指定回调地址 */}
           <div className={rowStyle}>
             <label className={labelStyle}>
-              <span className="text-red-500 mr-1">*</span>指定回调地址
+              <span className="text-red-400 mr-1">*</span>指定回调地址
               <Tooltip content="请输入用于接收回调通知的 HTTP/HTTPS 地址">
-                <InfoCircleIcon className="ml-1 text-gray-400 cursor-pointer inline-block" style={{ fontSize: 14 }} />
+                <InfoCircleIcon className="ml-1 text-slate-500 cursor-pointer inline-block" style={{ fontSize: 14 }} />
               </Tooltip>
             </label>
             <div className="flex-1 flex items-center gap-2">
@@ -492,8 +547,7 @@ const CallbackManagementPage: React.FC = () => {
                 }
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm whitespace-nowrap"
-                style={{ color: '#0052d9' }}
+                className="text-sm whitespace-nowrap text-sky-400 hover:text-sky-300 transition-colors"
               >
                 查看回调通知文档
               </a>
@@ -505,7 +559,7 @@ const CallbackManagementPage: React.FC = () => {
             <label className={labelStyle}>
               加密 key
               <Tooltip content="用于对回调消息体进行 AES 加密，建议使用系统生成">
-                <InfoCircleIcon className="ml-1 text-gray-400 cursor-pointer inline-block" style={{ fontSize: 14 }} />
+                <InfoCircleIcon className="ml-1 text-slate-500 cursor-pointer inline-block" style={{ fontSize: 14 }} />
               </Tooltip>
             </label>
             <div className="flex-1 flex items-center gap-2">
@@ -516,8 +570,7 @@ const CallbackManagementPage: React.FC = () => {
                 style={{ flex: 1 }}
               />
               <a
-                className="text-sm whitespace-nowrap cursor-pointer"
-                style={{ color: '#0052d9' }}
+                className="text-sm whitespace-nowrap cursor-pointer text-sky-400 hover:text-sky-300 transition-colors"
                 onClick={() => handleGenerateKey('encryptKey')}
               >
                 点击系统生成
@@ -530,7 +583,7 @@ const CallbackManagementPage: React.FC = () => {
             <label className={labelStyle}>
               签名验证 token
               <Tooltip content="用于验证回调请求的签名，确保回调来源可信">
-                <InfoCircleIcon className="ml-1 text-gray-400 cursor-pointer inline-block" style={{ fontSize: 14 }} />
+                <InfoCircleIcon className="ml-1 text-slate-500 cursor-pointer inline-block" style={{ fontSize: 14 }} />
               </Tooltip>
             </label>
             <div className="flex-1 flex items-center gap-2">
@@ -541,8 +594,7 @@ const CallbackManagementPage: React.FC = () => {
                 style={{ flex: 1 }}
               />
               <a
-                className="text-sm whitespace-nowrap cursor-pointer"
-                style={{ color: '#0052d9' }}
+                className="text-sm whitespace-nowrap cursor-pointer text-sky-400 hover:text-sky-300 transition-colors"
                 onClick={() => handleGenerateKey('signToken')}
               >
                 点击系统生成
@@ -555,7 +607,7 @@ const CallbackManagementPage: React.FC = () => {
             <label className={labelStyle}>
               二次加密分发
               <Tooltip content="开启后，分发到此地址时将使用上方配置的加密 key 和签名 token 重新加密消息。关闭则直接发送明文消息。">
-                <InfoCircleIcon className="ml-1 text-gray-400 cursor-pointer inline-block" style={{ fontSize: 14 }} />
+                <InfoCircleIcon className="ml-1 text-slate-500 cursor-pointer inline-block" style={{ fontSize: 14 }} />
               </Tooltip>
             </label>
             <div className="flex-1 pt-2">
@@ -563,7 +615,7 @@ const CallbackManagementPage: React.FC = () => {
                 value={formData.reEncrypt || false}
                 onChange={(val) => setFormData({ ...formData, reEncrypt: val })}
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 {formData.reEncrypt
                   ? '分发时将使用加密 key 和签名 token 对消息重新加密后发送'
                   : '分发时直接发送明文消息到此地址'}
@@ -588,7 +640,7 @@ const CallbackManagementPage: React.FC = () => {
             <label className={labelStyle}>
               未知事件策略
               <Tooltip content="官方可能新增回调类型，此策略决定收到系统未收录的事件时如何处理">
-                <InfoCircleIcon className="ml-1 text-gray-400 cursor-pointer inline-block" style={{ fontSize: 14 }} />
+                <InfoCircleIcon className="ml-1 text-slate-500 cursor-pointer inline-block" style={{ fontSize: 14 }} />
               </Tooltip>
             </label>
             <div className="flex-1">
@@ -599,7 +651,7 @@ const CallbackManagementPage: React.FC = () => {
                 <Radio value="dispatch">全量分发（推荐）</Radio>
                 <Radio value="discard">丢弃</Radio>
               </Radio.Group>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 {(formData.unknownMsgTypePolicy || 'dispatch') === 'dispatch'
                   ? '收到系统未收录的新回调类型时，仍会分发到此地址'
                   : '收到系统未收录的新回调类型时，将被忽略不分发'}
@@ -621,7 +673,7 @@ const CallbackManagementPage: React.FC = () => {
                         onChange={(val) => handleTagRowChange(index, 'key', String(val))}
                         placeholder="选择标签键"
                         options={tags.map((t) => ({ label: `${t.name} (${t.key})`, value: t.key }))}
-                        style={{ width: '45%' }}
+                        style={{ width: '35%' }}
                         filterable
                       />
                       {tagDef?.type === 'select' ? (
@@ -640,6 +692,16 @@ const CallbackManagementPage: React.FC = () => {
                           style={{ flex: 1 }}
                         />
                       )}
+                      <Select
+                        value={tagRow.matchMode || 'exact'}
+                        onChange={(val) => handleTagRowChange(index, 'matchMode', String(val))}
+                        options={[
+                          { label: '完全匹配', value: 'exact' },
+                          { label: '前缀匹配', value: 'prefix' },
+                        ]}
+                        style={{ width: '120px' }}
+                        size="medium"
+                      />
                       <Button
                         theme="default"
                         variant="text"
@@ -651,8 +713,7 @@ const CallbackManagementPage: React.FC = () => {
                   );
                 })}
                 <a
-                  className="text-sm cursor-pointer inline-flex items-center gap-1"
-                  style={{ color: '#0052d9' }}
+                  className="text-sm cursor-pointer inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors"
                   onClick={handleAddTagRow}
                 >
                   <AddCircleIcon style={{ fontSize: 14 }} />
@@ -667,7 +728,7 @@ const CallbackManagementPage: React.FC = () => {
             <label className={labelStyle}>
               字段缺失策略
               <Tooltip content="很多类型的回调消息（如印章、模板、员工等）不包含 FlowType/UserData 字段。此策略决定当回调消息中缺少已配置的内置标签字段时如何处理。">
-                <InfoCircleIcon className="ml-1 text-gray-400 cursor-pointer inline-block" style={{ fontSize: 14 }} />
+                <InfoCircleIcon className="ml-1 text-slate-500 cursor-pointer inline-block" style={{ fontSize: 14 }} />
               </Tooltip>
             </label>
             <div className="flex-1">
@@ -678,7 +739,7 @@ const CallbackManagementPage: React.FC = () => {
                 <Radio value="dispatch">接受（推荐）</Radio>
                 <Radio value="discard">丢弃</Radio>
               </Radio.Group>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 {(formData.builtInTagMissPolicy || 'dispatch') === 'dispatch'
                   ? '回调消息中缺少内置标签字段（如 FlowType/UserData）时，仍然接受并分发'
                   : '回调消息中缺少内置标签字段（如 FlowType/UserData）时，丢弃不分发'}
@@ -699,8 +760,8 @@ const CallbackManagementPage: React.FC = () => {
           </div>
 
           {/* 分割线 - 高级配置 */}
-          <div className="border-t border-gray-100 pt-4 mt-4">
-            <div className="text-sm font-medium text-gray-700 mb-4 pl-1">高级配置</div>
+          <div className="pt-4 mt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="text-sm font-medium text-slate-300 mb-4 pl-1">高级配置</div>
           </div>
 
           {/* 重试次数 + 超时时间 */}

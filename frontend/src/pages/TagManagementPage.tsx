@@ -12,8 +12,8 @@ const TAG_TYPE_OPTIONS = [
 ];
 
 const PRESET_COLORS = [
-  '#1890ff', '#52c41a', '#faad14', '#ff4d4f', '#722ed1',
-  '#13c2c2', '#eb2f96', '#2f54eb', '#fa8c16', '#a0d911',
+  '#38bdf8', '#34d399', '#fbbf24', '#f87171', '#a78bfa',
+  '#2dd4bf', '#f472b6', '#60a5fa', '#fb923c', '#a3e635',
 ];
 
 const INITIAL_FORM = {
@@ -21,7 +21,7 @@ const INITIAL_FORM = {
   key: '',
   type: 'text' as 'text' | 'select',
   options: [] as string[],
-  color: '#1890ff',
+  color: '#38bdf8',
   description: '',
 };
 
@@ -134,8 +134,8 @@ const TagManagementPage: React.FC = () => {
             size="medium"
             style={{
               color: row.color,
-              borderColor: row.color,
-              backgroundColor: `${row.color}10`,
+              borderColor: `${row.color}40`,
+              backgroundColor: `${row.color}15`,
             }}
             variant="outline"
           >
@@ -151,7 +151,11 @@ const TagManagementPage: React.FC = () => {
       colKey: 'key',
       title: '标签键',
       width: 180,
-      cell: ({ row }: { row: TagDefinition }) => <code className="text-sm bg-gray-100 px-2 py-0.5 rounded">{row.key || '-'}</code>,
+      cell: ({ row }: { row: TagDefinition }) => (
+        <code className="text-sm px-2 py-0.5 rounded font-mono text-sky-300" style={{ background: 'rgba(56, 189, 248, 0.08)' }}>
+          {row.key || '-'}
+        </code>
+      ),
     },
     {
       colKey: 'type',
@@ -174,7 +178,7 @@ const TagManagementPage: React.FC = () => {
               <Tag key={opt} size="small" variant="light">{opt}</Tag>
             ))
           ) : (
-            <span className="text-gray-400 text-xs">{row.type === 'text' ? '自由输入' : '-'}</span>
+            <span className="text-slate-500 text-xs">{row.type === 'text' ? '自由输入' : '-'}</span>
           )}
         </div>
       ),
@@ -183,13 +187,17 @@ const TagManagementPage: React.FC = () => {
       colKey: 'description',
       title: '描述',
       ellipsis: true,
-      cell: ({ row }: { row: TagDefinition }) => <span className="text-gray-500 text-sm">{row.description || '-'}</span>,
+      cell: ({ row }: { row: TagDefinition }) => <span className="text-slate-400 text-sm">{row.description || '-'}</span>,
     },
     {
       colKey: 'updatedAt',
       title: '更新时间',
       width: 180,
-      cell: ({ row }: { row: TagDefinition }) => row.updatedAt ? new Date(row.updatedAt).toLocaleString('zh-CN') : '-',
+      cell: ({ row }: { row: TagDefinition }) => (
+        <span className="font-mono text-xs text-slate-400">
+          {row.updatedAt ? new Date(row.updatedAt).toLocaleString('zh-CN') : '-'}
+        </span>
+      ),
     },
     {
       colKey: 'actions',
@@ -202,7 +210,7 @@ const TagManagementPage: React.FC = () => {
             编辑
           </Button>
           {!row.builtIn && (
-            <Popconfirm content="确定删除此标签键？" onConfirm={() => handleDelete(row.id)}>
+            <Popconfirm content={`确定删除标签「${row.name}」(${row.key})？已使用该标签的回调配置将不再匹配此标签。`} onConfirm={() => handleDelete(row.id)}>
               <Button theme="danger" variant="text" size="small" icon={<DeleteIcon />}>
                 删除
               </Button>
@@ -214,22 +222,38 @@ const TagManagementPage: React.FC = () => {
   ];
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full"><Loading /></div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3">
+        <Loading />
+        <span className="text-sm text-slate-500">正在加载标签数据...</span>
+      </div>
+    );
   }
 
-  const labelStyle = 'w-24 text-right text-sm text-gray-600 flex-shrink-0 pt-2';
+  const labelStyle = 'w-24 text-right text-sm text-slate-400 flex-shrink-0 pt-2';
   const rowStyle = 'flex items-start gap-4';
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-50">
+      <div className="tech-card p-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">标签管理</h2>
-            <p className="text-sm text-gray-500 mt-1">管理标签键定义，标签为 key-value 形式，用于回调配置中的消息过滤和分发</p>
+            <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+              <span className="w-1 h-4 rounded-full bg-purple-400 inline-block" />
+              标签管理
+            </h2>
+            <p className="text-sm text-slate-400 mt-1.5 ml-3">管理标签键定义，标签为 key-value 形式，用于回调配置中的消息过滤和分发</p>
           </div>
-          <Button theme="primary" icon={<AddIcon />} onClick={handleAdd}>
+          <Button
+            theme="primary"
+            icon={<AddIcon />}
+            onClick={handleAdd}
+            style={{
+              background: 'linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(13,148,136,0.9) 100%)',
+              border: 'none',
+            }}
+          >
             新建标签键
           </Button>
         </div>
@@ -237,15 +261,20 @@ const TagManagementPage: React.FC = () => {
 
       {/* Table */}
       {tags.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-50 text-center">
-          <TagIcon size={48} className="text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 mb-4">暂无标签键，创建标签键来定义分发过滤规则</p>
-          <Button theme="primary" variant="outline" icon={<AddIcon />} onClick={handleAdd}>
+        <div className="tech-card p-12 text-center">
+          <TagIcon size={48} className="text-slate-600 mx-auto mb-4" />
+          <p className="text-slate-400 mb-4">暂无标签键，创建标签键来定义分发过滤规则</p>
+          <Button
+            theme="primary"
+            variant="outline"
+            icon={<AddIcon />}
+            onClick={handleAdd}
+          >
             新建标签键
           </Button>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-50">
+        <div className="tech-card">
           <Table
             data={tags}
             columns={columns}
@@ -275,7 +304,7 @@ const TagManagementPage: React.FC = () => {
           {/* 标签名称 */}
           <div className={rowStyle}>
             <label className={labelStyle}>
-              <span className="text-red-500 mr-1">*</span>标签名称
+              <span className="text-red-400 mr-1">*</span>标签名称
             </label>
             <div className="flex-1">
               <Input
@@ -289,7 +318,7 @@ const TagManagementPage: React.FC = () => {
           {/* 标签键 */}
           <div className={rowStyle}>
             <label className={labelStyle}>
-              <span className="text-red-500 mr-1">*</span>标签键
+              <span className="text-red-400 mr-1">*</span>标签键
             </label>
             <div className="flex-1">
               <Input
@@ -298,7 +327,7 @@ const TagManagementPage: React.FC = () => {
                 placeholder="请输入标签键，如：project_name"
                 disabled={editingTag?.builtIn}
               />
-              <div className="text-xs text-gray-400 mt-1">
+              <div className="text-xs text-slate-500 mt-1">
                 {editingTag?.builtIn ? '内置标签键不可修改' : '只能包含字母、数字和下划线'}
               </div>
             </div>
@@ -307,7 +336,7 @@ const TagManagementPage: React.FC = () => {
           {/* 标签类型 */}
           <div className={rowStyle}>
             <label className={labelStyle}>
-              <span className="text-red-500 mr-1">*</span>标签类型
+              <span className="text-red-400 mr-1">*</span>标签类型
             </label>
             <div className="flex-1">
               <Select
@@ -363,7 +392,7 @@ const TagManagementPage: React.FC = () => {
                     key={c}
                     onClick={() => setFormData({ ...formData, color: c })}
                     className={`w-7 h-7 rounded-lg cursor-pointer transition-all hover:scale-110 ${
-                      formData.color === c ? 'ring-2 ring-offset-2 ring-primary' : ''
+                      formData.color === c ? 'ring-2 ring-offset-2 ring-sky-400 ring-offset-slate-800' : ''
                     }`}
                     style={{ backgroundColor: c }}
                   />
@@ -373,15 +402,15 @@ const TagManagementPage: React.FC = () => {
                 <Input
                   value={formData.color}
                   onChange={(val) => setFormData({ ...formData, color: String(val) })}
-                  placeholder="#1890ff"
+                  placeholder="#38bdf8"
                   style={{ width: '140px' }}
                 />
                 <Tag
                   size="medium"
                   style={{
                     color: formData.color,
-                    borderColor: formData.color,
-                    backgroundColor: `${formData.color}10`,
+                    borderColor: `${formData.color}40`,
+                    backgroundColor: `${formData.color}15`,
                   }}
                   variant="outline"
                 >

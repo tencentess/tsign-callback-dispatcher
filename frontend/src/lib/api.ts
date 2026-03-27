@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { DispatchConfig, TagDefinition, OperationLog, TSignConfig, ApiResponse } from '../types/api.types';
+import { DispatchConfig, TagDefinition, OperationLog, TSignConfig, DispatchRecord, DispatchStats, ApiResponse } from '../types/api.types';
 import { getToken, clearAuth } from './auth';
 
 /**
@@ -141,4 +141,32 @@ export async function fetchTSignConfig(): Promise<TSignConfig> {
 
 export async function updateTSignConfig(data: TSignConfig): Promise<void> {
   await api.put('/tsign-config', data);
+}
+
+// Dispatch History & Stats
+export async function fetchDispatchHistory(
+  limit = 20,
+  offset = 0,
+  search = ''
+): Promise<{ records: DispatchRecord[]; total: number; limit: number; offset: number }> {
+  const params: Record<string, string | number> = { limit, offset };
+  if (search.trim()) {
+    params.search = search.trim();
+  }
+  const res = await api.get<ApiResponse<{ records: DispatchRecord[]; total: number; limit: number; offset: number }>>(
+    '/dispatch-history',
+    { params }
+  );
+  return res.data.data || { records: [], total: 0, limit, offset };
+}
+
+export async function fetchDispatchStats(): Promise<DispatchStats> {
+  const res = await api.get<ApiResponse<DispatchStats>>('/dispatch-stats');
+  return res.data.data || {
+    totalDispatched: 0,
+    totalSuccess: 0,
+    totalFailed: 0,
+    recentFailures: [],
+    bufferUsage: { used: 0, capacity: 0 },
+  };
 }

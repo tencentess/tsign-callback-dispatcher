@@ -12,17 +12,20 @@ body {
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f0f2f5;
+  background-color: #0b1120;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 3px;
+  background: rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.4);
 }
 
 ::-webkit-scrollbar-track {
@@ -33,3 +36,665 @@ body {
   -webkit-text-security: disc;
   text-security: disc;
 }
+
+/* ── Tech Glass Card ── */
+.tech-card {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.05),
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.tech-card:hover {
+  border-color: rgba(56, 189, 248, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(56, 189, 248, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ── Tech Stat Card (system status etc.) ── */
+.tech-stat {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+.tech-stat:hover {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Glow accent line ── */
+.glow-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.6), rgba(13, 148, 136, 0.6), transparent);
+  border-radius: 1px;
+}
+
+/* ── Subtle grid background for main area ── */
+.tech-grid-bg {
+  position: relative;
+}
+.tech-grid-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+/* ── Animated pulse dot ── */
+@keyframes tech-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+}
+.tech-pulse {
+  animation: tech-pulse 2s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════════
+   TDesign Global Dark Theme Overrides
+   Apply to BOTH in-page (.tech-card) and portal elements (Dialog, Popup, Dropdown, etc.)
+   ══════════════════════════════════════════════ */
+
+/* ── Dialog / Popup overlay & container ── */
+.t-dialog__mask {
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+}
+.t-dialog__wrap {
+  /* No extra mask */
+}
+.t-dialog {
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(56, 189, 248, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.06),
+    0 24px 80px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(56, 189, 248, 0.04) !important;
+}
+.t-dialog .t-dialog__header {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.08) !important;
+  color: #e2e8f0 !important;
+  padding: 16px 24px !important;
+}
+.t-dialog .t-dialog__header .t-dialog__header-text {
+  color: #e2e8f0 !important;
+  font-weight: 600 !important;
+}
+.t-dialog .t-dialog__close {
+  color: #64748b !important;
+}
+.t-dialog .t-dialog__close:hover {
+  color: #94a3b8 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.t-dialog .t-dialog__body {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  padding: 20px 24px !important;
+}
+.t-dialog .t-dialog__footer {
+  background: transparent !important;
+  border-top: 1px solid rgba(56, 189, 248, 0.08) !important;
+  padding: 12px 24px !important;
+}
+
+/* ── Popconfirm (portal) ── */
+.t-popup {
+  --td-bg-color-container: rgba(15, 23, 42, 0.95) !important;
+}
+.t-popconfirm__content {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  color: #cbd5e1 !important;
+}
+.t-popconfirm .t-popconfirm__content .t-popconfirm__body {
+  color: #cbd5e1 !important;
+}
+.t-popup .t-popup__content {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.1) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+/* Arrow */
+.t-popup .t-popup__arrow {
+  border-color: rgba(56, 189, 248, 0.1) !important;
+}
+.t-popup .t-popup__arrow::after {
+  border-color: rgba(15, 23, 42, 0.95) !important;
+}
+
+/* ── Tooltip (portal) ── */
+.t-tooltip .t-popup__content {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+
+/* ── Dropdown (portal) ── */
+.t-dropdown__menu {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.1) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  padding: 4px !important;
+}
+.t-dropdown__item {
+  color: #94a3b8 !important;
+  border-radius: 6px !important;
+}
+.t-dropdown__item:hover {
+  background: rgba(56, 189, 248, 0.08) !important;
+  color: #e2e8f0 !important;
+}
+.t-dropdown__item .t-dropdown__item-icon {
+  color: inherit !important;
+}
+.t-dropdown__item--theme-error {
+  color: #f87171 !important;
+}
+.t-dropdown__item--theme-error:hover {
+  background: rgba(248, 113, 113, 0.08) !important;
+  color: #fca5a5 !important;
+}
+
+/* ── Select dropdown (portal) ── */
+.t-select__dropdown,
+.t-select-option__popup {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.1) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+.t-select-option {
+  color: #94a3b8 !important;
+}
+.t-select-option:hover,
+.t-select-option.t-is-highlight {
+  background: rgba(56, 189, 248, 0.08) !important;
+  color: #e2e8f0 !important;
+}
+.t-select-option.t-is-selected {
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: #38bdf8 !important;
+}
+.t-select__list {
+  background: transparent !important;
+}
+.t-select-input .t-input {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.t-select-input .t-input:hover {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+.t-select-input .t-input.t-is-focused {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1) !important;
+}
+.t-select-input .t-input__inner {
+  color: #e2e8f0 !important;
+}
+.t-select-input .t-fake-arrow {
+  color: #64748b !important;
+}
+
+/* ── Global Input dark ── */
+.t-input {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+.t-input:hover {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+.t-input.t-is-focused {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1) !important;
+}
+.t-input__inner {
+  color: #e2e8f0 !important;
+}
+.t-input__inner::placeholder {
+  color: #64748b !important;
+}
+.t-textarea__inner::placeholder {
+  color: #64748b !important;
+}
+.t-input .t-input__suffix {
+  color: #64748b !important;
+}
+
+/* ── Login page: light-theme input overrides ── */
+.login-card-light .t-input {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+.login-card-light .t-input:hover {
+  border-color: #94a3b8 !important;
+}
+.login-card-light .t-input.t-is-focused {
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.12) !important;
+}
+.login-card-light .t-input__inner {
+  color: #1e293b !important;
+}
+.login-card-light .t-input__inner::placeholder {
+  color: #94a3b8 !important;
+}
+.login-card-light .t-input .t-input__prefix-icon {
+  color: #94a3b8 !important;
+}
+.login-card-light .t-input .t-input__suffix {
+  color: #94a3b8 !important;
+}
+.login-card-light .t-form__controls--content .t-input__tips {
+  color: #ef4444 !important;
+}
+
+/* ── Dashed button dark ── */
+.t-button--variant-dashed {
+  border-color: rgba(56, 189, 248, 0.2) !important;
+  color: #64748b !important;
+  background: transparent !important;
+}
+.t-button--variant-dashed:hover {
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.04) !important;
+}
+
+/* ── Global Textarea dark ── */
+.t-textarea__inner {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0 !important;
+}
+.t-textarea__inner:hover {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+.t-textarea__inner:focus {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1) !important;
+}
+
+/* ── Global InputNumber dark ── */
+.t-input-number .t-input {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.t-input-number .t-input:hover {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+.t-input-number .t-input__inner {
+  color: #e2e8f0 !important;
+}
+.t-input-number__decrease,
+.t-input-number__increase {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #64748b !important;
+  background: rgba(15, 23, 42, 0.4) !important;
+}
+.t-input-number__decrease:hover,
+.t-input-number__increase:hover {
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.08) !important;
+}
+
+/* ── Global Select dark ── */
+.t-select .t-input {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.t-select .t-input:hover {
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+.t-select .t-input.t-is-focused {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1) !important;
+}
+.t-select .t-input__inner,
+.t-select .t-input .t-input__inner {
+  color: #e2e8f0 !important;
+}
+.t-select .t-fake-arrow {
+  color: #64748b !important;
+}
+
+/* ── Radio dark ── */
+.t-radio__label {
+  color: #cbd5e1 !important;
+}
+.t-radio__input {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(15, 23, 42, 0.4) !important;
+}
+.t-radio.t-is-checked .t-radio__input {
+  border-color: #38bdf8 !important;
+  background: #38bdf8 !important;
+}
+
+/* ── Checkbox dark ── */
+.t-checkbox__label {
+  color: #cbd5e1 !important;
+}
+.t-checkbox__input {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(15, 23, 42, 0.4) !important;
+}
+.t-checkbox.t-is-checked .t-checkbox__input,
+.t-checkbox.t-is-indeterminate .t-checkbox__input {
+  border-color: #38bdf8 !important;
+  background: #38bdf8 !important;
+}
+
+/* ── Switch dark ── */
+.t-switch {
+  background: rgba(100, 116, 139, 0.4) !important;
+}
+.t-switch.t-is-checked {
+  background: rgba(56, 189, 248, 0.7) !important;
+}
+
+/* ── Form label dark ── */
+.t-form__label {
+  color: #94a3b8 !important;
+}
+
+/* ── Button overrides ── */
+.t-button--variant-outline {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #94a3b8 !important;
+  background: transparent !important;
+}
+.t-button--variant-outline:hover {
+  border-color: rgba(56, 189, 248, 0.4) !important;
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.06) !important;
+}
+.t-button--theme-primary:not(.t-button--variant-text):not(.t-button--variant-outline) {
+  background: linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(13,148,136,0.9) 100%) !important;
+  border: none !important;
+  transition: all 0.3s ease !important;
+}
+.t-button--theme-primary:not(.t-button--variant-text):not(.t-button--variant-outline):hover {
+  filter: brightness(1.15) !important;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+.t-button--theme-primary:not(.t-button--variant-text):not(.t-button--variant-outline):active {
+  transform: translateY(0) !important;
+  filter: brightness(0.95) !important;
+}
+.t-button--variant-text {
+  color: #94a3b8 !important;
+}
+.t-button--variant-text:hover {
+  background: rgba(56, 189, 248, 0.08) !important;
+  color: #38bdf8 !important;
+}
+.t-button--theme-primary.t-button--variant-text {
+  color: #38bdf8 !important;
+}
+.t-button--theme-danger.t-button--variant-text {
+  color: #f87171 !important;
+}
+.t-button--theme-danger.t-button--variant-text:hover {
+  background: rgba(248, 113, 113, 0.08) !important;
+}
+
+/* ── Table dark (works inside .tech-card) ── */
+.tech-card .t-table {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+}
+.tech-card .t-table__header th {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.1) !important;
+  font-weight: 500 !important;
+}
+.tech-card .t-table__body tr {
+  background: transparent !important;
+}
+.tech-card .t-table__body tr:hover td {
+  background: rgba(56, 189, 248, 0.04) !important;
+}
+.tech-card .t-table__body td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  color: #cbd5e1 !important;
+}
+.tech-card .t-table--striped .t-table__body tr:nth-child(even) td {
+  background: rgba(15, 23, 42, 0.3) !important;
+}
+.tech-card .t-table__empty {
+  color: #64748b !important;
+}
+.tech-card .t-table__pagination {
+  background: transparent !important;
+}
+
+/* ── Table inside dialog dark ── */
+.t-dialog .t-table {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+}
+.t-dialog .t-table__header th {
+  background: rgba(15, 23, 42, 0.6) !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.08) !important;
+}
+.t-dialog .t-table__body td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  color: #cbd5e1 !important;
+}
+
+/* ── Pagination dark ── */
+.t-pagination,
+.t-pagination .t-pagination__pager,
+.t-pagination .t-pagination__jump {
+  background: transparent !important;
+}
+.t-pagination .t-pagination__btn,
+.t-pagination .t-pagination__number {
+  color: #94a3b8 !important;
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.t-pagination .t-pagination__number.t-is-current {
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  background: rgba(56, 189, 248, 0.1) !important;
+}
+.t-pagination .t-pagination__total {
+  color: #64748b !important;
+}
+.t-pagination .t-pagination__btn:disabled {
+  color: #334155 !important;
+  opacity: 0.5 !important;
+}
+.t-pagination .t-select .t-input {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.t-pagination .t-select .t-input__inner {
+  color: #94a3b8 !important;
+}
+/* Simple pagination mode */
+.t-pagination--simple,
+.t-pagination--simple .t-pagination__pager {
+  background: transparent !important;
+}
+.t-pagination--simple .t-pagination__current,
+.t-pagination--simple .t-pagination__pager span,
+.t-pagination--simple .t-pagination__total {
+  color: #94a3b8 !important;
+}
+.t-pagination--simple .t-pagination__btn {
+  color: #94a3b8 !important;
+  background: transparent !important;
+}
+.t-pagination--simple .t-pagination__btn:hover {
+  color: #38bdf8 !important;
+}
+
+/* ── Tag dark (global) ── */
+.t-tag--light {
+  background: rgba(56, 189, 248, 0.1) !important;
+  color: #7dd3fc !important;
+  border-color: transparent !important;
+}
+.t-tag--theme-primary.t-tag--light {
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: #7dd3fc !important;
+}
+.t-tag--theme-success.t-tag--light {
+  background: rgba(52, 211, 153, 0.12) !important;
+  color: #6ee7b7 !important;
+}
+.t-tag--theme-warning.t-tag--light {
+  background: rgba(251, 191, 36, 0.12) !important;
+  color: #fcd34d !important;
+}
+.t-tag--theme-danger.t-tag--light {
+  background: rgba(248, 113, 113, 0.12) !important;
+  color: #fca5a5 !important;
+}
+.t-tag--theme-default.t-tag--light {
+  background: rgba(148, 163, 184, 0.1) !important;
+  color: #94a3b8 !important;
+}
+.t-tag.t-tag--closable .t-tag__icon-close {
+  color: inherit !important;
+}
+
+/* ── Loading dark ── */
+.t-loading__text {
+  color: #64748b !important;
+}
+
+/* ── Message plugin dark ── */
+.t-message {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(56, 189, 248, 0.12) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  color: #cbd5e1 !important;
+}
+.t-message .t-message__icon--success {
+  color: #34d399 !important;
+}
+.t-message .t-message__icon--warning {
+  color: #fbbf24 !important;
+}
+.t-message .t-message__icon--error {
+  color: #f87171 !important;
+}
+
+/* ── Smooth page transitions ── */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-slide-in {
+  animation: fadeSlideIn 0.3s ease-out;
+}
+
+/* ── Empty state illustration style ── */
+.empty-state-icon {
+  color: #334155;
+  opacity: 0.6;
+  filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.1));
+}
+
+/* ── Log detail formatted ── */
+.log-detail-text {
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.log-detail-text:hover {
+  white-space: normal;
+  word-break: break-all;
+}
+
+/* ── Tech stat card pulse shimmer ── */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.tech-stat-loading {
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.5) 25%, rgba(56, 189, 248, 0.06) 50%, rgba(15, 23, 42, 0.5) 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 12px;
+  height: 80px;
+}
+
+/* ── Table row hover glow ── */
+.tech-card .t-table__body tr {
+  transition: all 0.2s ease !important;
+}
+.tech-card .t-table__body tr:hover {
+  box-shadow: inset 2px 0 0 rgba(56, 189, 248, 0.4);
+}
+
+/* ── Table expand button (arrow icon) dark ── */
+.tech-card .t-table__expand-box .t-table__expand-icon,
+.tech-card .t-table__expand-box .t-icon,
+.tech-card .t-table .t-table__expand-box,
+.tech-card .t-table__row--full td {
+  color: #94a3b8 !important;
+}
+.tech-card .t-table__expand-box .t-table__expand-icon:hover,
+.tech-card .t-table__expand-box .t-icon:hover {
+  color: #38bdf8 !important;
+}
+/* Expanded row background */
+.tech-card .t-table__expanded-row,
+.tech-card .t-table__expanded-row td,
+.tech-card .t-table__expanded-row .t-table__expanded-cell {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.06) !important;
+}
+/* Force all text inside expanded row to be light */
+.tech-card .t-table__expanded-row td,
+.tech-card .t-table__expanded-row td *,
+.tech-card .t-table__expanded-cell,
+.tech-card .t-table__expanded-cell * {
+  color: inherit !important;
+}
+.tech-card .t-table__expanded-row td {
+  color: #cbd5e1 !important;
+}
+
+
