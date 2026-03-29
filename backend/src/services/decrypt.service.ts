@@ -1,10 +1,10 @@
 import { TSignCallbackMessage, EncryptedCallbackMessage } from '../types/callback.types';
-import { decryptAES256CBC, verifySignature } from '../utils/crypto.util';
-import { appConfig } from '../config/app.config';
+import { decryptAES256CBC, verifySignature, verifyContentSignature } from '../utils/crypto.util';
+import { getAppConfig } from '../config/app.config';
 import logger from './logger.service';
 
 export function decryptCallbackMessage(encrypted: EncryptedCallbackMessage): TSignCallbackMessage | null {
-  const { encryptKey } = appConfig.tsign;
+  const { encryptKey } = getAppConfig().tsign;
 
   try {
     if (!encryptKey) {
@@ -30,7 +30,7 @@ export function verifyCallbackSignature(
   encrypt: string,
   msgSignature: string
 ): boolean {
-  const { token } = appConfig.tsign;
+  const { token } = getAppConfig().tsign;
   if (!token) {
     logger.warn('No token configured, skipping signature verification');
     return true;
@@ -40,6 +40,35 @@ export function verifyCallbackSignature(
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     logger.error(`Signature verification threw error: ${errMsg}`);
+    return false;
+  }
+}
+
+/**
+ * 验证 Content-Signature Header (HMAC-SHA256)
+ * 腾讯电子签平台通过 HTTP Header Content-Signature 传递签名
+ */
+export function verifyContentSignatureHeader(
+  rawBody: string,
+  contentSignature: string
+): boolean {
+  const { token } = getAppConfig().tsign;
+  if (!token) {
+    logger.warn('No token configured, skipping Content-Signature verification');
+    return true;
+  }
+  try {
+    const result = verifyContentSignature(token, rawBody, contentSignature);
+    if (!result) {
+      logger.warn('[Callback] Content-Signature HMAC-SHA256 verification failed', {
+        contentSignature,
+        bodyLength: rawBody.length,
+      });
+    }
+    return result;
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    logger.error(`Content-Signature verification threw error: ${errMsg}`);
     return false;
   }
 }

@@ -8,7 +8,7 @@ import { requestLogger } from './middleware/logger.middleware';
 import { authRequired } from './middleware/auth.middleware';
 import { asyncHandler } from './middleware/async-handler';
 import { validateCallbackBody, validateTagBody } from './middleware/validator.middleware';
-import { handleCallback, getReceivedCallbacks, clearReceivedCallbacks, getDispatchHistory, getDispatchStatsApi } from './controllers/callback.controller';
+import { handleCallback, getReceivedCallbacks, clearReceivedCallbacks, getDispatchHistory, getDispatchStatsApi, getCallbackDiagnostic } from './controllers/callback.controller';
 import * as configCtrl from './controllers/config.controller';
 import * as authCtrl from './controllers/auth.controller';
 import { healthCheck, systemStatus } from './controllers/health.controller';
@@ -48,7 +48,13 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  // 保存原始 body 用于 Content-Signature HMAC-SHA256 签名验证
+  verify: (req: express.Request, _res, buf) => {
+    (req as any).rawBody = buf.toString('utf8');
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
@@ -121,6 +127,12 @@ app.get('/api/logs', authRequired, asyncHandler(configCtrl.getLogs));
 // TSign config
 app.get('/api/tsign-config', authRequired, asyncHandler(configCtrl.getTSignConfig));
 app.put('/api/tsign-config', authRequired, asyncHandler(configCtrl.updateTSignConfig));
+
+// Callback diagnostic (最近一次回调失败的诊断信息)
+app.get('/api/callback-diagnostic', authRequired, (_req, res) => {
+  const diag = getCallbackDiagnostic();
+  res.json({ code: 0, message: 'success', data: diag });
+});
 
 // Config versions
 app.get('/api/versions/:type', authRequired, asyncHandler(configCtrl.getVersions));

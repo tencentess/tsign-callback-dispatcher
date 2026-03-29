@@ -147,7 +147,16 @@ export async function updateTSignConfig(req: Request, res: Response): Promise<vo
     return;
   }
   const config = await loadAppConfig();
-  config.tsign = { encryptKey, token };
+
+  // 判断是否应该更新某个字段：
+  // - 空字符串 → 用户未填写，保留原值
+  // - 包含 '****' → 前端回传的掩码值，保留原值
+  // - 其他非空值 → 用户输入了新值，更新
+  const shouldUpdate = (val: string) => val.length > 0 && !val.includes('****');
+  config.tsign = {
+    encryptKey: shouldUpdate(encryptKey) ? encryptKey : config.tsign.encryptKey,
+    token: shouldUpdate(token) ? token : config.tsign.token,
+  };
   await saveAppConfig(config);
   res.json({ code: 0, message: 'TSign config updated' });
 }

@@ -267,8 +267,10 @@ const DispatchHistoryPage: React.FC = () => {
     );
   }
 
-  const successRate = stats && stats.totalDispatched > 0
-    ? ((stats.totalSuccess / (stats.totalSuccess + stats.totalFailed)) * 100).toFixed(1)
+  const successRate = stats
+    ? (stats.totalSuccess + stats.totalFailed > 0
+        ? ((stats.totalSuccess / (stats.totalSuccess + stats.totalFailed)) * 100).toFixed(1)
+        : (stats.totalDispatched > 0 ? '-' : '0'))
     : '0';
 
   return (
@@ -312,7 +314,7 @@ const DispatchHistoryPage: React.FC = () => {
             <div className="tech-stat">
               <p className="text-xs text-purple-400 font-medium mb-2 uppercase tracking-wider">成功率</p>
               <p className="text-2xl font-bold text-purple-300 font-mono">
-                {successRate}<span className="text-sm ml-0.5 text-purple-400">%</span>
+                {successRate}{successRate !== '-' && <span className="text-sm ml-0.5 text-purple-400">%</span>}
               </p>
             </div>
           </div>

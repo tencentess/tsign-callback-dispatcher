@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Tag, Loading, MessagePlugin, Table, Input, Button, Space, Tooltip,
 } from 'tdesign-react';
-import { LockOnIcon, BrowseOffIcon, BrowseIcon, LinkIcon, CloseCircleFilledIcon, RefreshIcon } from 'tdesign-icons-react';
-import { fetchHealth, fetchLogs, fetchTSignConfig, updateTSignConfig, SystemStatus } from '../lib/api';
-import { OperationLog, TSignConfig } from '../types/api.types';
+import { LockOnIcon, BrowseOffIcon, BrowseIcon, LinkIcon, CloseCircleFilledIcon, RefreshIcon, ErrorCircleIcon } from 'tdesign-icons-react';
+import { fetchHealth, fetchLogs, fetchTSignConfig, updateTSignConfig, fetchCallbackDiagnostic, SystemStatus } from '../lib/api';
+import { OperationLog, TSignConfig, CallbackDiagnostic } from '../types/api.types';
 
 const CALLBACK_FAQ_URL = 'https://qian.tencent.com/developers/company/callback_types_v2#%E4%BA%94-%E5%9B%9E%E8%B0%83-faq';
 
@@ -22,6 +22,7 @@ const SettingsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [tsignDirty, setTsignDirty] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [callbackDiag, setCallbackDiag] = useState<CallbackDiagnostic | null>(null);
 
   // Format uptime to human-readable string
   const formatUptime = useCallback((seconds: number) => {
@@ -56,13 +57,15 @@ const SettingsPage: React.FC = () => {
   const handleRefreshStatus = async () => {
     setRefreshing(true);
     try {
-      const [healthData, logsData] = await Promise.all([
+      const [healthData, logsData, diagData] = await Promise.all([
         fetchHealth().catch(() => null),
         fetchLogs(200).catch(() => ({ logs: [], total: 0 })),
+        fetchCallbackDiagnostic().catch(() => null),
       ]);
       setHealth(healthData);
       setLogs(logsData.logs);
       setLogsTotal(logsData.total);
+      setCallbackDiag(diagData);
       MessagePlugin.success('数据已刷新');
     } catch {
       MessagePlugin.error('刷新失败');
@@ -76,23 +79,27 @@ const SettingsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    setTsignDirty(
-      tsignForm.encryptKey !== tsignConfig.encryptKey || tsignForm.token !== tsignConfig.token,
-    );
+    // 只要用户输入了新的非空值就视为有变更
+    setTsignDirty(!!tsignForm.encryptKey || !!tsignForm.token);
   }, [tsignForm, tsignConfig]);
 
   const loadData = async () => {
     setLoading(true);
-    const [healthData, logsData, tsignData] = await Promise.all([
+    const [healthData, logsData, tsignData, diagData] = await Promise.all([
       fetchHealth().catch(() => null),
       fetchLogs(200).catch(() => ({ logs: [], total: 0 })),
-      fetchTSignConfig().catch(() => ({ encryptKey: '', token: '' })),
+      fetchTSignConfig().catch((): TSignConfig => ({ encryptKey: '', token: '', hasEncryptKey: false, hasToken: false })),
+      fetchCallbackDiagnostic().catch(() => null),
     ]);
     setHealth(healthData);
     setLogs(logsData.logs);
     setLogsTotal(logsData.total);
+    // 保存原始返回（含掩码值和 has* 标志）用于状态显示
     setTsignConfig(tsignData);
-    setTsignForm(tsignData);
+    // 表单初始化为空值，用户必须输入完整新值才能保存
+    // 避免掩码值（如 D981****579E）被误保存为实际密钥
+    setTsignForm({ encryptKey: '', token: '', hasEncryptKey: tsignData.hasEncryptKey, hasToken: tsignData.hasToken });
+    setCallbackDiag(diagData);
     setLoading(false);
   };
 
@@ -100,8 +107,15 @@ const SettingsPage: React.FC = () => {
     setSaving(true);
     try {
       await updateTSignConfig(tsignForm);
-      setTsignConfig({ ...tsignForm });
       MessagePlugin.success('加密配置已保存');
+      // 重新加载配置以获取最新的掩码值和 has* 标志
+      const [tsignData, diagData] = await Promise.all([
+        fetchTSignConfig().catch((): TSignConfig => ({ encryptKey: '', token: '', hasEncryptKey: false, hasToken: false })),
+        fetchCallbackDiagnostic().catch(() => null),
+      ]);
+      setTsignConfig(tsignData);
+      setTsignForm({ encryptKey: '', token: '', hasEncryptKey: tsignData.hasEncryptKey, hasToken: tsignData.hasToken });
+      setCallbackDiag(diagData);
     } catch {
       MessagePlugin.error('保存失败，请检查后端服务');
     } finally {
@@ -239,6 +253,20 @@ const SettingsPage: React.FC = () => {
           </p>
         </div>
 
+        {/* 回调诊断告警 */}
+        {callbackDiag && (
+          <div className="rounded-lg p-3 mb-4 flex items-start gap-2" style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+            <ErrorCircleIcon size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-300">回调处理异常</p>
+              <p className="text-sm text-red-400/90 mt-1">{callbackDiag.message}</p>
+              <p className="text-xs text-red-500/60 mt-1">
+                来源 IP: {callbackDiag.ip} · 时间: {new Date(callbackDiag.timestamp).toLocaleString('zh-CN')}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">
@@ -248,7 +276,7 @@ const SettingsPage: React.FC = () => {
               <Input
                 value={tsignForm.encryptKey}
                 onChange={(val) => setTsignForm((prev) => ({ ...prev, encryptKey: val as string }))}
-                placeholder="请输入 EncryptKey"
+                placeholder={tsignConfig.hasEncryptKey ? `已配置 (${tsignConfig.encryptKey})，输入新值可替换` : '请输入 EncryptKey'}
                 style={{ flex: 1 }}
                 className={showEncryptKey ? '' : 'mask-password'}
                 suffix={
@@ -280,7 +308,7 @@ const SettingsPage: React.FC = () => {
               <Input
                 value={tsignForm.token}
                 onChange={(val) => setTsignForm((prev) => ({ ...prev, token: val as string }))}
-                placeholder="请输入 Token"
+                placeholder={tsignConfig.hasToken ? `已配置 (${tsignConfig.token})，输入新值可替换` : '请输入 Token'}
                 style={{ flex: 1 }}
                 className={showToken ? '' : 'mask-password'}
                 suffix={
@@ -312,7 +340,7 @@ const SettingsPage: React.FC = () => {
               <Button
                 variant="outline"
                 disabled={!tsignDirty}
-                onClick={() => setTsignForm({ ...tsignConfig })}
+                onClick={() => setTsignForm({ encryptKey: '', token: '', hasEncryptKey: tsignConfig.hasEncryptKey, hasToken: tsignConfig.hasToken })}
               >
                 重置
               </Button>

@@ -467,13 +467,15 @@ const CallbackManagementPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="tech-card">
+      <div className="tech-card callback-table-wrap">
         <Table
           data={callbacks}
           columns={columns}
           rowKey="id"
           hover
           stripe
+          tableContentWidth="1400px"
+          tableLayout="fixed"
           empty="暂无回调配置，点击右上角新增"
         />
       </div>

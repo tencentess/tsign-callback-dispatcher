@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ccr.ccs.tencentyun.com/pulse-line-prod/tsign-dispatcher-frontend:latest
+          image: ccr.ccs.tencentyun.com/pulse-line-prod/tsign-dispatcher-frontend:v0.1.17
           ports:
             - containerPort: 8080
           env:

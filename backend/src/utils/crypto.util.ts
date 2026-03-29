@@ -33,6 +33,37 @@ export function verifySignature(
   return computeSignature(token, timestamp, nonce, encrypt) === msgSignature;
 }
 
+/**
+ * 验证 Content-Signature (HMAC-SHA256)
+ * 腾讯电子签平台通过 HTTP Header Content-Signature: sha256=xxx 传递签名
+ * 签名计算: HMAC-SHA256(token, rawBody)，输出 hex 小写
+ */
+export function verifyContentSignature(
+  token: string,
+  rawBody: string,
+  contentSignature: string
+): boolean {
+  // Content-Signature 格式: "sha256=xxxx"
+  const expectedPrefix = 'sha256=';
+  if (!contentSignature.startsWith(expectedPrefix)) {
+    return false;
+  }
+  const receivedHmac = contentSignature.slice(expectedPrefix.length);
+  const computedHmac = crypto
+    .createHmac('sha256', token)
+    .update(rawBody, 'utf8')
+    .digest('hex');
+  // 使用 timingSafeEqual 防止时序攻击
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(computedHmac, 'hex'),
+      Buffer.from(receivedHmac, 'hex')
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function generateId(): string {
   return crypto.randomUUID();
 }

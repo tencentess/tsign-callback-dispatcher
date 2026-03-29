@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { DispatchConfig, TagDefinition, OperationLog, TSignConfig, DispatchRecord, DispatchStats, ApiResponse } from '../types/api.types';
+import { DispatchConfig, TagDefinition, OperationLog, TSignConfig, CallbackDiagnostic, DispatchRecord, DispatchStats, ApiResponse } from '../types/api.types';
 import { getToken, clearAuth } from './auth';
 
 /**
@@ -141,6 +141,12 @@ export async function fetchTSignConfig(): Promise<TSignConfig> {
 
 export async function updateTSignConfig(data: TSignConfig): Promise<void> {
   await api.put('/tsign-config', data);
+}
+
+// Callback Diagnostic
+export async function fetchCallbackDiagnostic(): Promise<CallbackDiagnostic | null> {
+  const res = await api.get<ApiResponse<CallbackDiagnostic | null>>('/callback-diagnostic');
+  return res.data.data ?? null;
 }
 
 // Dispatch History & Stats

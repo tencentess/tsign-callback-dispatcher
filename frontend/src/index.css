@@ -668,6 +668,50 @@ body {
   box-shadow: inset 2px 0 0 rgba(56, 189, 248, 0.4);
 }
 
+/* ── Table fixed column dark theme ── */
+/* Fixed column header cells */
+.tech-card .t-table__header th.t-table__cell--fixed-right,
+.tech-card .t-table__header th.t-table__cell--fixed-left {
+  background: rgba(15, 23, 42, 0.95) !important;
+}
+/* Fixed column body cells */
+.tech-card .t-table__body td.t-table__cell--fixed-right,
+.tech-card .t-table__body td.t-table__cell--fixed-left {
+  background: rgba(15, 23, 42, 0.95) !important;
+}
+/* Striped rows: even row fixed cells */
+.tech-card .t-table--striped .t-table__body tr:nth-child(even) td.t-table__cell--fixed-right,
+.tech-card .t-table--striped .t-table__body tr:nth-child(even) td.t-table__cell--fixed-left {
+  background: rgba(15, 23, 42, 0.85) !important;
+}
+/* Hover state for fixed cells */
+.tech-card .t-table__body tr:hover td.t-table__cell--fixed-right,
+.tech-card .t-table__body tr:hover td.t-table__cell--fixed-left {
+  background: rgba(20, 30, 55, 0.98) !important;
+}
+/* Fix the fixed column shadow (divider line) */
+.tech-card .t-table__cell--fixed-right-first-column::before {
+  box-shadow: inset 10px 0 8px -8px rgba(0, 0, 0, 0.25) !important;
+}
+.tech-card .t-table__cell--fixed-left-last-column::after {
+  box-shadow: inset -10px 0 8px -8px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* ── Callback table scrollbar horizontal ── */
+.callback-table-wrap .t-table__content {
+  overflow-x: auto !important;
+}
+.callback-table-wrap .t-table__content::-webkit-scrollbar {
+  height: 6px;
+}
+.callback-table-wrap .t-table__content::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.2);
+  border-radius: 3px;
+}
+.callback-table-wrap .t-table__content::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.35);
+}
+
 /* ── Table expand button (arrow icon) dark ── */
 .tech-card .t-table__expand-box .t-table__expand-icon,
 .tech-card .t-table__expand-box .t-icon,

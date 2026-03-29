@@ -114,6 +114,16 @@ export interface OperationLog {
 export interface TSignConfig {
   encryptKey: string;
   token: string;
+  hasEncryptKey?: boolean;
+  hasToken?: boolean;
+}
+
+/** 回调诊断信息（最近一次非探测请求的失败信息） */
+export interface CallbackDiagnostic {
+  type: 'signature_no_token' | 'signature_failed' | 'signature_missing' | 'decrypt_failed';
+  message: string;
+  timestamp: string;
+  ip: string;
 }
 
 export interface ApiResponse<T = unknown> {

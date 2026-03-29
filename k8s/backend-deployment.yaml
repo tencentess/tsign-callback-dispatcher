@@ -24,7 +24,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: backend
-          image: ccr.ccs.tencentyun.com/pulse-line-prod/tsign-dispatcher-backend:latest
+          image: ccr.ccs.tencentyun.com/pulse-line-prod/tsign-dispatcher-backend:v0.1.17
           ports:
             - containerPort: 3001
           env:
