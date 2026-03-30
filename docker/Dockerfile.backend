@@ -9,6 +9,14 @@ RUN npm run build
 # 运行阶段：使用目标架构（如 linux/amd64）
 FROM node:20-alpine
 WORKDIR /app
+
+# 安全加固：升级系统包修复已知漏洞（如 zlib CVE），并删除运行时不需要的 npm/npx
+# npm 及其依赖链（glob, tar, minimatch, cross-spawn 等）存在多个高危漏洞
+RUN apk update && apk upgrade --no-cache \
+    && npm uninstall -g npm \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
+    && rm -rf /root/.npm /tmp/*
+
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json .
