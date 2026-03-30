@@ -18,6 +18,7 @@ spec:
         app: tsign-dispatcher
         component: backend
     spec:
+      serviceAccountName: tsign-dispatcher-backend
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

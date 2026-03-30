@@ -147,10 +147,10 @@ cp k8s/secret.yaml.example k8s/secret.yaml
 # 编辑 k8s/secret.yaml，填写 JWT_SECRET 和 ADMIN_DEFAULT_PASSWORD
 
 # 2. 配置电子签密钥
-# 编辑 k8s/configmap.yaml，填写 tsign.encryptKey 和 tsign.token
+# 编辑 k8s/configmap.yaml，填写 tsign.encryptKey 和 tsign.token，http://{you-domain}/settings也在界面直接配置
 
 # 3. 配置域名
-# 编辑 k8s/ingress.yaml，替换 host 为你的实际域名
+# 编辑 k8s/ingress.yaml，替换 host 为你的实际域名。如果需要 HTTPS，还需配置 TLS 证书。可参考tls.yaml
 
 # 4. （可选）如使用私有镜像仓库，修改 Deployment 中的 image 字段
 # 默认使用 latest 标签，开箱即用

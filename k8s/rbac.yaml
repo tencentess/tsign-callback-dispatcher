@@ -1,0 +1,142 @@
+# ============================================================
+# RBAC - Role-Based Access Control for tsign-dispatcher
+# ============================================================
+# Principle of Least Privilege: each component gets only the
+# permissions it actually needs.
+#
+# Usage:
+#   kubectl apply -f rbac.yaml
+# ============================================================
+
+# ── ServiceAccount: backend ──
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tsign-dispatcher-backend
+  namespace: default
+  labels:
+    app: tsign-dispatcher
+    component: backend
+automountServiceAccountToken: false   # 不自动挂载 token，除非显式需要
+
+---
+# ── ServiceAccount: frontend ──
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tsign-dispatcher-frontend
+  namespace: default
+  labels:
+    app: tsign-dispatcher
+    component: frontend
+automountServiceAccountToken: false
+
+---
+# ── Role: backend ──
+# Backend 需要读取 ConfigMap 和 Secret（运行时配置热加载场景）
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tsign-dispatcher-backend-role
+  namespace: default
+  labels:
+    app: tsign-dispatcher
+    component: backend
+rules:
+  # 读取自身的 ConfigMap（app.json / callbacks.json / tags.json）
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["tsign-dispatcher-config"]
+    verbs: ["get", "watch"]
+  # 读取自身的 Secret（JWT_SECRET 等）
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["tsign-dispatcher-secret"]
+    verbs: ["get"]
+
+---
+# ── RoleBinding: backend ──
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tsign-dispatcher-backend-binding
+  namespace: default
+  labels:
+    app: tsign-dispatcher
+    component: backend
+subjects:
+  - kind: ServiceAccount
+    name: tsign-dispatcher-backend
+    namespace: default
+roleRef:
+  kind: Role
+  name: tsign-dispatcher-backend-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ── Role: frontend ──
+# Frontend (nginx) 无需访问 K8s API，仅声明空 Role 以备扩展
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tsign-dispatcher-frontend-role
+  namespace: default
+  labels:
+    app: tsign-dispatcher
+    component: frontend
+rules: []   # nginx 容器不需要任何 K8s API 权限
+
+---
+# ── RoleBinding: frontend ──
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tsign-dispatcher-frontend-binding
+  namespace: default
+  labels:
+    app: tsign-dispatcher
+    component: frontend
+subjects:
+  - kind: ServiceAccount
+    name: tsign-dispatcher-frontend
+    namespace: default
+roleRef:
+  kind: Role
+  name: tsign-dispatcher-frontend-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ── NetworkPolicy: 限制 Pod 间通信 ──
+# 仅允许 frontend → backend:3001 的流量，禁止其他横向通信
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tsign-dispatcher-backend-netpol
+  namespace: default
+  labels:
+    app: tsign-dispatcher
+spec:
+  podSelector:
+    matchLabels:
+      app: tsign-dispatcher
+      component: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    # 允许来自 frontend Pod 的请求
+    - from:
+        - podSelector:
+            matchLabels:
+              app: tsign-dispatcher
+              component: frontend
+      ports:
+        - protocol: TCP
+          port: 3001
+    # 允许来自 Ingress Controller 的健康检查（如有直接路由）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3001
