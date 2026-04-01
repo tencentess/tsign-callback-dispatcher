@@ -625,7 +625,7 @@ body {
   }
 }
 .animate-fade-slide-in {
-  animation: fadeSlideIn 0.3s ease-out;
+  animation: fadeSlideIn 0.3s ease-out both;
 }
 
 /* ── Empty state illustration style ── */

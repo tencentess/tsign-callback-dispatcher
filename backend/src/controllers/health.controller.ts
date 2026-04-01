@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { getWalStats } from '../services/wal.service';
 
 // SEC-011: Health check only returns status — no process internals on unauthenticated endpoint
 export function healthCheck(req: Request, res: Response): void {
@@ -19,6 +20,7 @@ export function systemStatus(_req: Request, res: Response): void {
       heapTotal: mem.heapTotal,
       rss: mem.rss,
     },
+    wal: getWalStats(),
     timestamp: new Date().toISOString(),
   });
 }

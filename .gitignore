@@ -7,6 +7,9 @@ logs/
 config/versions/
 config/operation-logs.json
 config/users.json
+
+# WAL (Write-Ahead Log) 运行时数据
+data/
 *.log
 *.tsbuildinfo
 .DS_Store

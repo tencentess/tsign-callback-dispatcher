@@ -4,7 +4,7 @@ import {
 } from 'tdesign-react';
 import {
   RefreshIcon, CheckCircleIcon, CloseCircleIcon, TimeIcon,
-  ErrorCircleIcon, SearchIcon,
+  ErrorCircleIcon, SearchIcon, InfoCircleIcon,
 } from 'tdesign-icons-react';
 import { fetchDispatchHistory, fetchDispatchStats } from '../lib/api';
 import { DispatchRecord, DispatchStats } from '../types/api.types';
@@ -316,6 +316,20 @@ const DispatchHistoryPage: React.FC = () => {
 
   return (
     <div className="space-y-4 animate-fade-slide-in">
+      {/* 内存存储提醒 */}
+      <div
+        className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm"
+        style={{
+          background: 'rgba(251, 191, 36, 0.06)',
+          border: '1px solid rgba(251, 191, 36, 0.15)',
+        }}
+      >
+        <InfoCircleIcon className="text-amber-400 flex-shrink-0" size={18} />
+        <span className="text-amber-300/90">
+          分发记录仅保存在内存中，用于查看近期的分发情况。<span className="text-amber-400 font-medium">服务重启后记录将会清空</span>，如需持久化日志请对接外部存储。
+        </span>
+      </div>
+
       {/* 统计卡片 */}
       {stats && (
         <div className="tech-card p-5">

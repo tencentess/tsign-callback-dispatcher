@@ -22,8 +22,10 @@ export async function getCallback(req: Request, res: Response): Promise<void> {
 
 export async function createCallback(req: AuthenticatedRequest, res: Response): Promise<void> {
   const { name, url, appType = 'company', tags = [], matchRules = [], enabled = true, retryCount = 3, timeout = 10000, headers, msgTypes, unknownMsgTypePolicy, builtInTagMissPolicy, encryptKey, signToken, reEncrypt, remark } = req.body;
+  // 校验重试次数范围
+  const safeRetryCount = Math.min(Math.max(Number(retryCount) || 0, 0), 10);
   const newCallback = await configService.addCallback({
-    name, url, appType, tags, matchRules, enabled, retryCount, timeout, headers, msgTypes, unknownMsgTypePolicy, builtInTagMissPolicy, encryptKey, signToken, reEncrypt, remark,
+    name, url, appType, tags, matchRules, enabled, retryCount: safeRetryCount, timeout, headers, msgTypes, unknownMsgTypePolicy, builtInTagMissPolicy, encryptKey, signToken, reEncrypt, remark,
   }, req.user?.username);
   res.status(201).json({ code: 0, message: 'Created', data: newCallback });
 }
@@ -35,6 +37,10 @@ export function generateKeys(req: Request, res: Response): void {
 }
 
 export async function editCallback(req: AuthenticatedRequest, res: Response): Promise<void> {
+  // 如果请求体包含 retryCount，校验范围
+  if (req.body.retryCount !== undefined) {
+    req.body.retryCount = Math.min(Math.max(Number(req.body.retryCount) || 0, 0), 10);
+  }
   const updated = await configService.updateCallback(req.params.id, req.body, req.user?.username);
   if (!updated) {
     res.status(404).json({ code: 404, message: 'Callback not found' });

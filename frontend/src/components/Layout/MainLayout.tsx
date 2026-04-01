@@ -222,7 +222,7 @@ const MainLayout: React.FC = () => {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-auto p-6 tech-grid-bg animate-fade-slide-in">
+        <main className="flex-1 overflow-auto p-6 tech-grid-bg">
           <Outlet />
         </main>
       </div>

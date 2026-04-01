@@ -14,6 +14,9 @@ import * as authCtrl from './controllers/auth.controller';
 import { healthCheck, systemStatus } from './controllers/health.controller';
 import { initConfigWatcher } from './services/config.service';
 import { initDefaultUser } from './services/auth.service';
+import { initWal, recoverPendingDispatches } from './services/wal.service';
+import { dispatchMessage } from './services/dispatch.service';
+import { TSignCallbackMessage } from './types/callback.types';
 import logger from './services/logger.service';
 
 const app = express();
@@ -172,11 +175,25 @@ async function bootstrap(): Promise<void> {
   // 3. 初始化默认用户
   await initDefaultUser();
 
-  // 4. 启动服务器
+  // 4. 初始化 WAL（消息持久化，防止崩溃丢失）
+  initWal();
+
+  // 5. 启动服务器
   const { port, host } = getAppConfig().server;
   app.listen(port, host, () => {
     const storeType = getStoreType();
     logger.info(`TSign Callback Dispatcher running at http://${host}:${port} [store=${storeType}]`);
+  });
+
+  // 6. 恢复上次崩溃时未完成的分发（异步，不阻塞服务启动）
+  recoverPendingDispatches(async (message) => {
+    const results = await dispatchMessage(message as unknown as TSignCallbackMessage);
+    const hasFailures = results.some((r) => !r.success);
+    const allSuccess = results.length > 0 && results.every((r) => r.success);
+    return { allSuccess, hasFailures };
+  }).catch((err) => {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    logger.error(`[WAL] Recovery process failed: ${errMsg}`);
   });
 }
 

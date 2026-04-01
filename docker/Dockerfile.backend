@@ -22,9 +22,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json .
 COPY config/ ./config/
 
-RUN mkdir -p /app/logs
+RUN mkdir -p /app/logs /app/data/wal
 
 ENV CONFIG_DIR=/app/config
+ENV WAL_DIR=/app/data/wal
 
 EXPOSE 3001
 CMD ["node", "dist/app.js"]

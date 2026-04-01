@@ -45,11 +45,15 @@ spec:
                   key: ADMIN_DEFAULT_PASSWORD
             - name: JWT_EXPIRES_IN
               value: "24h"
+            - name: WAL_DIR
+              value: /app/data/wal
           volumeMounts:
             - name: config
               mountPath: /app/config
             - name: logs
               mountPath: /app/logs
+            - name: wal-data
+              mountPath: /app/data/wal
           livenessProbe:
             httpGet:
               path: /api/health
@@ -81,3 +85,7 @@ spec:
             name: tsign-dispatcher-config
         - name: logs
           emptyDir: {}
+        - name: wal-data
+          hostPath:
+            path: /data/tsign-dispatcher/wal
+            type: DirectoryOrCreate

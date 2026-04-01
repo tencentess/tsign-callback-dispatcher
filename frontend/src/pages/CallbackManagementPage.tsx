@@ -328,9 +328,15 @@ const CallbackManagementPage: React.FC = () => {
     {
       colKey: 'url',
       title: '回调地址',
-      ellipsis: true,
       cell: ({ row }: { row: DispatchConfig }) => (
-        <span className="text-slate-400 text-sm font-mono">{row.url}</span>
+        <Tooltip content={row.url} placement="top-left">
+          <span
+            className="text-slate-400 text-sm font-mono block truncate"
+            style={{ maxWidth: '320px' }}
+          >
+            {row.url}
+          </span>
+        </Tooltip>
       ),
     },
     {
@@ -474,8 +480,7 @@ const CallbackManagementPage: React.FC = () => {
           rowKey="id"
           hover
           stripe
-          tableContentWidth="1400px"
-          tableLayout="fixed"
+          tableLayout="auto"
           empty="暂无回调配置，点击右上角新增"
         />
       </div>
@@ -715,7 +720,7 @@ const CallbackManagementPage: React.FC = () => {
                   );
                 })}
                 <a
-                  className="text-sm cursor-pointer inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors"
+                  className="text-sm cursor-pointer inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors h-8"
                   onClick={handleAddTagRow}
                 >
                   <AddCircleIcon style={{ fontSize: 14 }} />
@@ -770,13 +775,19 @@ const CallbackManagementPage: React.FC = () => {
           <div className={rowStyle}>
             <label className={labelStyle}>重试次数</label>
             <div className="flex-1 flex items-start gap-4">
-              <InputNumber
-                value={formData.retryCount}
-                onChange={(val) => setFormData({ ...formData, retryCount: Number(val) || 0 })}
-                min={0}
-                max={10}
-                style={{ width: '100%' }}
-              />
+              <div style={{ width: '100%' }}>
+                <InputNumber
+                  value={formData.retryCount}
+                  onChange={(val) => {
+                    const n = Number(val) || 0;
+                    setFormData({ ...formData, retryCount: Math.min(Math.max(n, 0), 10) });
+                  }}
+                  min={0}
+                  max={10}
+                  style={{ width: '100%' }}
+                />
+                <p className="text-xs text-slate-500 mt-1">最多 10 次，设为 0 表示不重试</p>
+              </div>
             </div>
           </div>
 
@@ -823,8 +834,8 @@ const CallbackManagementPage: React.FC = () => {
           </div>
 
           {/* 匹配规则 */}
-          <div className={rowStyle}>
-            <label className={labelStyle}>匹配规则</label>
+          <div className={`flex ${(formData.matchRules?.length ?? 0) > 0 ? 'items-start' : 'items-center'} gap-4`}>
+            <label className={`w-32 text-right text-sm text-slate-400 flex-shrink-0 ${(formData.matchRules?.length ?? 0) > 0 ? 'pt-2' : ''}`}>匹配规则</label>
             <div className="flex-1">
               <TagRuleEditor
                 rules={formData.matchRules || []}

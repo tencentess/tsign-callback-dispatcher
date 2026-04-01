@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Tag, Loading, MessagePlugin, Table, Input, Button, Space, Tooltip,
 } from 'tdesign-react';
@@ -20,9 +20,11 @@ const SettingsPage: React.FC = () => {
   const [showEncryptKey, setShowEncryptKey] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [tsignDirty, setTsignDirty] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [callbackDiag, setCallbackDiag] = useState<CallbackDiagnostic | null>(null);
+
+  // 派生值：只要用户输入了新的非空值就视为有变更
+  const tsignDirty = useMemo(() => !!tsignForm.encryptKey || !!tsignForm.token, [tsignForm.encryptKey, tsignForm.token]);
 
   // Format uptime to human-readable string
   const formatUptime = useCallback((seconds: number) => {
@@ -77,11 +79,6 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
-
-  useEffect(() => {
-    // 只要用户输入了新的非空值就视为有变更
-    setTsignDirty(!!tsignForm.encryptKey || !!tsignForm.token);
-  }, [tsignForm, tsignConfig]);
 
   const loadData = async () => {
     setLoading(true);

@@ -4,6 +4,7 @@ import { decryptCallbackMessage, verifyCallbackSignature, verifyContentSignature
 import { dispatchMessage } from '../services/dispatch.service';
 import { getDispatchRecords, getDispatchStats } from '../services/dispatch-log.service';
 import { getAppConfig } from '../config/app.config';
+import { writeWal, removeWal } from '../services/wal.service';
 import logger from '../services/logger.service';
 
 /** Maximum number of received callbacks to keep in memory (test mode only) */
@@ -197,12 +198,23 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
       }
     }
 
+    // ── WAL: 先持久化再回复 200，防止分发过程中进程崩溃导致消息丢失 ──
+    let walPath: string | null = null;
+    try {
+      walPath = writeWal(message as unknown as Record<string, unknown>, callbackReceivedAt);
+    } catch (walErr) {
+      // WAL 写入失败不应阻塞回调处理，降级为无 WAL 保护模式
+      const walErrMsg = walErr instanceof Error ? walErr.message : String(walErr);
+      logger.error(`[Callback] WAL write failed, proceeding without crash protection: ${walErrMsg}`);
+    }
+
     // Return success immediately, dispatch asynchronously
     // 腾讯电子签平台要求及时返回成功，否则会触发重试
     res.status(200).json({ code: 0, message: 'success' });
 
     // Dispatch to configured targets (fully fault-tolerant)
     // 此处使用 setImmediate 确保 response 已完成发送后再执行分发
+    const capturedWalPath = walPath;
     setImmediate(async () => {
       try {
         const results = await dispatchMessage(message);
@@ -220,6 +232,13 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
               `success=${successCount} total=${results.length}`
           );
         }
+
+        // ── WAL: 分发完成后（无论成败），删除 WAL ──
+        // 分发失败的情况已由 httpPostWithRetry 内部重试处理，
+        // 到这里说明所有重试已耗尽，不需要再通过 WAL 恢复
+        if (capturedWalPath) {
+          removeWal(capturedWalPath);
+        }
       } catch (dispatchErr) {
         // 最外层兜底，理论上不应该到这里（dispatchMessage 内部已完全容错）
         const errMsg = dispatchErr instanceof Error ? dispatchErr.message : String(dispatchErr);
@@ -227,6 +246,7 @@ export async function handleCallback(req: Request, res: Response): Promise<void>
           `[Callback] CRITICAL: Unhandled dispatch error for MsgId=${message.MsgId}: ${errMsg}`,
           { stack: dispatchErr instanceof Error ? dispatchErr.stack : undefined }
         );
+        // WAL 保留不删除，下次启动时恢复
       }
     });
   } catch (err) {
