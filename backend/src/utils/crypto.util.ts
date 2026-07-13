@@ -64,6 +64,11 @@ export function verifyContentSignature(
   }
 }
 
+export function generateContentSignature(token: string, rawBody: string): string {
+  const hmac = crypto.createHmac('sha256', token).update(rawBody, 'utf8').digest('hex');
+  return `sha256=${hmac}`;
+}
+
 export function generateId(): string {
   return crypto.randomUUID();
 }
