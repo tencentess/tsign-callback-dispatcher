@@ -3,7 +3,7 @@ import { DispatchConfig, DispatchResult } from '../types/config.types';
 import { getCallbacksConfig } from './config.service';
 import { shouldDispatch, DispatchDecision } from './tag-matcher.service';
 import { httpPostWithRetry } from '../utils/http.util';
-import { encryptAES256CBC, generateSignature, generateId } from '../utils/crypto.util';
+import { encryptAES256CBC, generateContentSignature } from '../utils/crypto.util';
 import { getAppConfig } from '../config/app.config';
 import logger from './logger.service';
 import { addDispatchRecord } from './dispatch-log.service';
@@ -13,14 +13,15 @@ function buildDispatchPayload(message: TSignCallbackMessage, callbackConfig: Dis
     try {
       const jsonStr = JSON.stringify(message);
       const encrypted = encryptAES256CBC(jsonStr, callbackConfig.encryptKey);
-      const timestamp = String(Math.floor(Date.now() / 1000));
-      const nonce = generateId().replace(/-/g, '');
       const token = callbackConfig.signToken || '';
-      const msgSignature = generateSignature(token, timestamp, nonce, encrypted);
+
+      const rawBody = JSON.stringify({ encrypt: encrypted });
+      const contentSignature = generateContentSignature(token, rawBody);
 
       return {
-        data: { encrypt: encrypted },
-        params: { timestamp, nonce, msg_signature: msgSignature },
+        data: rawBody,
+        headers: { 'Content-Signature': contentSignature },
+        params: undefined,
       };
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -28,7 +29,7 @@ function buildDispatchPayload(message: TSignCallbackMessage, callbackConfig: Dis
     }
   }
 
-  return { data: message, params: undefined };
+  return { data: message, headers: undefined, params: undefined };
 }
 
 /**
@@ -84,18 +85,20 @@ async function dispatchToTarget(
     }
 
     // Step 2: 构建 payload
-    const { data, params } = buildDispatchPayload(message, callbackConfig);
-    const mode = params ? 'encrypted' : 'plaintext';
+    const { data, headers: signatureHeaders, params } = buildDispatchPayload(message, callbackConfig);
+    const mode = signatureHeaders ? 'encrypted' : 'plaintext';
     logger.info(
       `[Dispatch START] "${callbackConfig.name}" → ${callbackConfig.url} [${mode}] MsgType=${message.MsgType} MsgId=${message.MsgId}`
     );
+
+    const mergedHeaders = { ...(callbackConfig.headers || {}), ...(signatureHeaders || {}) };
 
     // Step 3: HTTP 请求（带重试）
     const result = await httpPostWithRetry({
       url: callbackConfig.url,
       data,
       params,
-      headers: callbackConfig.headers,
+      headers: mergedHeaders,
       timeout: callbackConfig.timeout || appCfg.dispatch.defaultTimeout,
       retryCount: callbackConfig.retryCount ?? appCfg.dispatch.defaultRetryCount,
       retryDelay: appCfg.dispatch.retryDelay,
