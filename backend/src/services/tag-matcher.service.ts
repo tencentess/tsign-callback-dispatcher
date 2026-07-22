@@ -154,45 +154,77 @@ function resolveFieldPath(
  * - Custom tags whose key is a nested field path (e.g. "MsgData.xxx")
  * - Custom tags with an explicit fieldPath
  */
+function matchTagValue(strMsgValue: string, configTag: TagValue): boolean {
+  const matchMode = configTag.matchMode || 'exact';
+  return matchMode === 'prefix'
+    ? strMsgValue.startsWith(configTag.value)
+    : strMsgValue === configTag.value;
+}
+
+/**
+ * Group config tags (that have a resolvable field path) by their tag key.
+ * Tags sharing the same key target the same field and are OR-combined,
+ * while different keys are AND-combined.
+ */
+function groupTagsByKey(
+  configTags: TagValue[],
+  tagDefMap: Map<string, { builtIn?: boolean; fieldPath?: string }>
+): Map<string, { fieldPath: string; tags: TagValue[] }> {
+  const groups = new Map<string, { fieldPath: string; tags: TagValue[] }>();
+  for (const configTag of configTags) {
+    const tagDef = tagDefMap.get(configTag.key);
+    const fieldPath = resolveFieldPath(configTag, tagDef);
+    if (!fieldPath) continue;
+
+    const group = groups.get(configTag.key);
+    if (group) {
+      group.tags.push(configTag);
+    } else {
+      groups.set(configTag.key, { fieldPath, tags: [configTag] });
+    }
+  }
+  return groups;
+}
+
 function passesBuiltInTags(
   message: TSignCallbackMessage,
   configTags: TagValue[],
   tagDefMap: Map<string, { builtIn?: boolean; fieldPath?: string }>,
   builtInTagMissPolicy: BuiltInTagMissPolicy
 ): boolean {
-  for (const configTag of configTags) {
-    const tagDef = tagDefMap.get(configTag.key);
-    const fieldPath = resolveFieldPath(configTag, tagDef);
-    if (!fieldPath) continue;
+  const groups = groupTagsByKey(configTags, tagDefMap);
 
+  for (const [key, { fieldPath, tags }] of groups) {
     const msgValue = getNestedValue(message as unknown as Record<string, unknown>, fieldPath);
     const fieldMissing = msgValue === undefined || msgValue === null || String(msgValue).trim() === '';
 
     if (fieldMissing) {
       if (builtInTagMissPolicy === 'discard') {
-        logger.debug(`Tag "${configTag.key}" field "${fieldPath}" missing or empty in message, discarded by policy`);
+        logger.debug(`Tag "${key}" field "${fieldPath}" missing or empty in message, discarded by policy`);
         return false;
       }
-      logger.debug(`Tag "${configTag.key}" field "${fieldPath}" missing or empty in message, dispatched by policy`);
+      logger.debug(`Tag "${key}" field "${fieldPath}" missing or empty in message, dispatched by policy`);
       continue;
     }
 
-    if (configTag.value) {
-      const strMsgValue = String(msgValue);
-      const matchMode = configTag.matchMode || 'exact';
-      const isMatch = matchMode === 'prefix'
-        ? strMsgValue.startsWith(configTag.value)
-        : strMsgValue === configTag.value;
-
-      if (!isMatch) {
-        logger.debug(
-          `Tag "${configTag.key}" value mismatch (${matchMode}): expected="${configTag.value}", got="${msgValue}"`
-        );
-        return false;
-      }
+    // Any tag row in this group without an explicit value only requires existence,
+    // which is already satisfied here.
+    if (tags.some((t) => !t.value)) {
+      logger.debug(`Tag "${key}" matched by existence`);
+      continue;
     }
 
-    logger.debug(`Tag "${configTag.key}" matched: value="${msgValue}"`);
+    const strMsgValue = String(msgValue);
+    // Same key across multiple rows → OR: any matching value passes this group.
+    const isMatch = tags.some((t) => matchTagValue(strMsgValue, t));
+    if (!isMatch) {
+      logger.debug(
+        `Tag "${key}" value mismatch: expected one of [${tags.map((t) => t.value).join(', ')}], got="${msgValue}"`
+      );
+      return false;
+    }
+
+    logger.debug(`Tag "${key}" matched: value="${msgValue}"`);
   }
   return true;
 }
@@ -271,28 +303,29 @@ function getBuiltInMismatchDetail(
   tagDefMap: Map<string, { builtIn?: boolean; fieldPath?: string }>,
   builtInTagMissPolicy: BuiltInTagMissPolicy
 ): string {
-  for (const configTag of configTags) {
-    const tagDef = tagDefMap.get(configTag.key);
-    const fieldPath = resolveFieldPath(configTag, tagDef);
-    if (!fieldPath) continue;
+  const groups = groupTagsByKey(configTags, tagDefMap);
 
+  for (const [key, { fieldPath, tags }] of groups) {
     const msgValue = getNestedValue(message as unknown as Record<string, unknown>, fieldPath);
     const fieldMissing = msgValue === undefined || msgValue === null || String(msgValue).trim() === '';
 
-    if (fieldMissing && builtInTagMissPolicy === 'discard') {
-      return `标签 "${configTag.key}" 对应字段 "${fieldPath}" 在消息中为空/缺失，策略为丢弃`;
+    if (fieldMissing) {
+      if (builtInTagMissPolicy === 'discard') {
+        return `标签 "${key}" 对应字段 "${fieldPath}" 在消息中为空/缺失，策略为丢弃`;
+      }
+      continue;
     }
 
-    if (!fieldMissing && configTag.value) {
-      const strMsgValue = String(msgValue);
-      const matchMode = configTag.matchMode || 'exact';
-      const isMatch = matchMode === 'prefix'
-        ? strMsgValue.startsWith(configTag.value)
-        : strMsgValue === configTag.value;
+    // Existence-only tag in this group is satisfied.
+    if (tags.some((t) => !t.value)) continue;
 
-      if (!isMatch) {
-        return `标签 "${configTag.key}"（${matchMode === 'prefix' ? '前缀' : '精确'}匹配）不匹配：期望 "${configTag.value}"，实际 "${strMsgValue}"`;
-      }
+    const strMsgValue = String(msgValue);
+    const isMatch = tags.some((t) => matchTagValue(strMsgValue, t));
+    if (!isMatch) {
+      const expected = tags
+        .map((t) => `"${t.value}"${(t.matchMode || 'exact') === 'prefix' ? '(前缀)' : ''}`)
+        .join(' 或 ');
+      return `标签 "${key}" 不匹配：期望 ${expected}，实际 "${strMsgValue}"`;
     }
   }
   return '标签不匹配';
